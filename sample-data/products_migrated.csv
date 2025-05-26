@@ -1,0 +1,11 @@
+product_id,product_name,product_category,unit_price,stock_quantity,date_added
+1,Laptop Pro,Electronics,1299.99,45,2024-01-15
+2,Wireless Mouse,Electronics,29.99,152,2024-01-20
+3,Office Chair,Furniture,249.99,30,2024-02-01
+4,Standing Desk,Furniture,599.99,18,2024-02-10
+5,USB-C Hub,Electronics,49.99,100,2024-02-15
+6,Monitor 27inch,Electronics,399.99,35,2024-03-01
+7,Keyboard Mechanical,Electronics,139.99,80,2024-03-05
+8,Desk Lamp LED,Furniture,39.99,60,2024-03-10
+9,Webcam HD,Electronics,79.99,55,2024-03-15
+11,Mouse Pad XL,Electronics,19.99,150,2024-03-25

@@ -1,0 +1,77 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+dev-debug.log
+lerna-debug.log*
+
+# Dependencies
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Editor directories and files
+.idea
+.vscode/*
+!.vscode/extensions.json
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.claude/
+.cursor/
+.roo/
+
+# OS specific
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Task files
+tasks.json
+tasks/
+
+# Test & temporary files
+*.db
+*.sqlite
+*.sqlite3
+coverage/
+.nyc_output/
+*.tmp
+*.temp
+
+# Screenshots and reports
+*.png
+*.jpg
+*.jpeg
+*.gif
+websql-*.html
+!public/**/*
+
+# Build outputs
+build/
+out/
+
+# Cache directories
+.cache/
+.parcel-cache/
+
+# Tool-specific configs
+.mcp.json
+.roomodes
+.taskmasterconfig
+.windsurfrules
+
+# Puppeteer
+.puppeteerrc.cjs
+chrome-linux/
+.local-chromium/ 

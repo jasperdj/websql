@@ -1,0 +1,533 @@
+@import "tailwindcss";
+
+/* Import AG-Grid base styles first */
+@import 'ag-grid-community/styles/ag-grid.css';
+@import 'ag-grid-community/styles/ag-theme-quartz.css';
+
+/* AG-Grid Custom Theme Overrides - Applied after imports */
+.ag-theme-quartz {
+  --ag-font-size: 14px;
+  --ag-grid-size: 3px;
+  --ag-header-height: 42px;
+  --ag-row-height: 42px;
+}
+
+/* Light mode - More distinct grays */
+.ag-theme-quartz {
+  --ag-background-color: #e5e7eb !important; /* gray-200 */
+  --ag-header-background-color: #ddd6fe !important; /* violet-200 */
+  --ag-header-foreground-color: #1e40af !important;
+  --ag-odd-row-background-color: #f3f4f6 !important;
+  --ag-row-hover-color: #d1d5db !important; /* gray-300 */
+  --ag-border-color: #d1d5db !important; /* gray-300 */
+  --ag-row-border-color: #e5e7eb !important; /* gray-200 */
+  --ag-line-height: 42px !important;
+  --ag-foreground-color: #374151 !important; /* gray-700 */
+  --ag-header-cell-hover-background-color: #c7b5fe !important;
+  --ag-header-cell-moving-background-color: #c7b5fe !important;
+  --ag-checkbox-checked-color: #2563eb !important; /* blue-600 */
+  --ag-checkbox-background-color: #ffffff !important;
+  --ag-checkbox-unchecked-color: #9ca3af !important;
+}
+
+/* More distinct row colors */
+.ag-theme-quartz .ag-row {
+  background-color: #f3f4f6 !important; /* gray-100 */
+}
+
+.ag-theme-quartz .ag-row-hover,
+.ag-theme-quartz .ag-row:hover {
+  background-color: #d1d5db !important; /* gray-300 for hover */
+}
+
+/* Dark mode */
+.dark .ag-theme-quartz {
+  --ag-background-color: #1e293b;
+  --ag-header-background-color: #1e3a8a;
+  --ag-header-foreground-color: #dbeafe;
+  --ag-odd-row-background-color: #1e293b;
+  --ag-row-hover-color: #334155;
+  --ag-border-color: #475569;
+  --ag-row-border-color: #334155;
+  --ag-foreground-color: #e2e8f0;
+  --ag-alpine-active-color: #3b82f6;
+  --ag-header-cell-hover-background-color: #2563eb;
+  --ag-header-cell-moving-background-color: #2563eb;
+}
+
+/* Dark mode rows - consistent background with hover */
+.dark .ag-theme-quartz .ag-row {
+  background-color: #1e293b !important;
+}
+
+.dark .ag-theme-quartz .ag-row-hover,
+.dark .ag-theme-quartz .ag-row:hover {
+  background-color: #334155 !important;
+}
+
+/* Grid lines and borders */
+.ag-theme-quartz .ag-header-cell {
+  font-weight: 600;
+  border-right: 1px solid var(--ag-border-color);
+  text-transform: uppercase;
+  font-size: 12px;
+  letter-spacing: 0.05em;
+  background-color: var(--ag-header-background-color) !important;
+  color: var(--ag-header-foreground-color) !important;
+}
+
+/* Header styling - Direct element targeting */
+.ag-theme-quartz .ag-header {
+  background-color: #e0e7ff !important;
+  border-bottom: 2px solid #c7d2fe !important;
+}
+
+.ag-theme-quartz .ag-header-row {
+  background-color: #e0e7ff !important;
+}
+
+.ag-theme-quartz .ag-header-cell-label {
+  color: #1e40af !important;
+}
+
+/* Fix checkbox - ensure native checkbox is visible and perfectly centered */
+.ag-theme-quartz .ag-checkbox-input-wrapper {
+  width: 20px !important;
+  height: 20px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  position: relative !important;
+}
+
+.ag-theme-quartz .ag-checkbox-input-wrapper input[type="checkbox"] {
+  opacity: 1 !important;
+  position: absolute !important;
+  top: 80% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  width: 16px !important;
+  height: 16px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  accent-color: #2563eb !important;
+  cursor: pointer !important;
+  -webkit-appearance: checkbox !important;
+  appearance: checkbox !important;
+}
+
+/* Remove ag-grid's custom checkbox elements */
+.ag-theme-quartz .ag-checkbox-input-wrapper::before,
+.ag-theme-quartz .ag-checkbox-input-wrapper::after,
+.ag-theme-quartz .ag-checkbox-input-wrapper .ag-icon {
+  display: none !important;
+}
+
+/* Center checkbox ONLY in selection column */
+.ag-theme-quartz .ag-cell-wrapper.ag-selection-checkbox {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 100% !important;
+  height: 100% !important;
+  padding: 0 !important;
+}
+
+/* Center header checkbox ONLY in the checkbox column */
+.ag-theme-quartz .ag-header-cell.ag-column-select .ag-header-select-all {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Hide checkboxes in data column headers using field attribute */
+.ag-theme-quartz .ag-header-cell[col-id]:not(.ag-column-select) .ag-checkbox-input-wrapper {
+  display: none !important;
+}
+
+/* Make checkbox column narrower - target all possible selectors */
+.ag-theme-quartz .ag-column-select,
+.ag-theme-quartz .ag-header-cell.ag-column-select,
+.ag-theme-quartz [col-id="0"],
+.ag-theme-quartz .ag-header-cell[col-id="0"],
+.ag-theme-quartz .ag-cell[col-id="0"],
+.ag-theme-quartz .ag-center-cols-container [col-id="0"],
+.ag-theme-quartz .ag-header-container [col-id="0"] {
+  max-width: 36px !important;
+  min-width: 36px !important;
+  width: 36px !important;
+  flex: 0 0 36px !important;
+}
+
+/* Force checkbox column wrapper width */
+.ag-theme-quartz .ag-header-cell.ag-column-select .ag-header-cell-comp-wrapper,
+.ag-theme-quartz [col-id="0"] .ag-cell-wrapper {
+  width: 100% !important;
+}
+
+.ag-theme-quartz .ag-column-select .ag-header-cell-resize {
+  display: none !important; /* Hide resize handle for checkbox column */
+}
+
+/* Ensure the select-all checkbox in header is visible and centered */
+.ag-theme-quartz .ag-header-select-all {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 100% !important;
+  height: 100% !important;
+  padding-top: 0 !important;
+}
+
+.ag-theme-quartz .ag-header-select-all .ag-checkbox-input-wrapper {
+  display: inline-flex !important;
+  margin-top: -4px !important; /* Bring up the header checkbox */
+}
+
+/* Specific positioning for header checkbox */
+.ag-theme-quartz .ag-header-select-all .ag-checkbox-input-wrapper input[type="checkbox"] {
+  top: 50% !important; /* Keep header checkbox centered vertically */
+}
+
+/* Ensure all checkboxes in selection column are visible */
+.ag-theme-quartz .ag-column-select .ag-checkbox-input-wrapper,
+.ag-theme-quartz .ag-header-select-all .ag-checkbox-input-wrapper,
+.ag-theme-quartz .ag-selection-checkbox .ag-checkbox-input-wrapper {
+  visibility: visible !important;
+  opacity: 1 !important;
+  display: inline-flex !important;
+}
+
+/* Ensure header checkbox container is properly displayed */
+.ag-theme-quartz .ag-header-select-all {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.ag-theme-quartz .ag-cell {
+  border-right: 1px solid var(--ag-row-border-color) !important;
+  line-height: var(--ag-line-height);
+  padding-left: 12px;
+  padding-right: 12px;
+}
+
+.ag-theme-quartz .ag-row {
+  border-bottom: 1px solid var(--ag-row-border-color) !important;
+}
+
+/* Background colors for empty areas and containers */
+.ag-theme-quartz .ag-root-wrapper {
+  background-color: #e5e7eb !important; /* gray-200 */
+}
+
+.ag-theme-quartz .ag-center-cols-viewport,
+.ag-theme-quartz .ag-body-viewport,
+.ag-theme-quartz .ag-body-horizontal-scroll-viewport {
+  background-color: #e5e7eb !important; /* gray-200 */
+}
+
+/* Pagination panel background */
+.ag-theme-quartz .ag-paging-panel {
+  background-color: #e5e7eb !important; /* gray-200 */
+  border-top: 1px solid #d1d5db !important;
+}
+
+.dark .ag-theme-quartz .ag-root-wrapper,
+.dark .ag-theme-quartz .ag-center-cols-viewport,
+.dark .ag-theme-quartz .ag-body-viewport,
+.dark .ag-theme-quartz .ag-body-horizontal-scroll-viewport,
+.dark .ag-theme-quartz .ag-paging-panel {
+  background-color: #111827 !important;
+}
+
+/* Remove last border */
+.ag-theme-quartz .ag-header-cell:last-child,
+.ag-theme-quartz .ag-cell:last-child {
+  border-right: none;
+}
+
+/* Monospace font for data */
+.ag-theme-quartz .ag-cell-value {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
+}
+
+/* Floating filter styling - Force background colors */
+.ag-theme-quartz .ag-floating-filter {
+  background-color: #f3f4f6 !important;
+  border-top: 1px solid #c7d2fe !important;
+  padding: 0 !important;
+}
+
+.ag-theme-quartz .ag-header-row.ag-header-row-floating-filter {
+  background-color: #f3f4f6 !important;
+}
+
+.ag-theme-quartz .ag-floating-filter-full-body {
+  padding: 4px !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+.ag-theme-quartz .ag-floating-filter-button {
+  background-color: transparent !important;
+  margin-right: 10px !important;
+}
+
+.dark .ag-theme-quartz .ag-floating-filter {
+  background-color: #111827 !important;
+}
+
+.dark .ag-theme-quartz .ag-header-row.ag-header-row-floating-filter {
+  background-color: #111827 !important;
+}
+
+.dark .ag-theme-quartz .ag-floating-filter-full-body,
+.dark .ag-theme-quartz .ag-floating-filter-body {
+  padding: 4px !important;
+}
+
+.ag-theme-quartz .ag-floating-filter-input {
+  font-size: 13px !important;
+  height: calc(100% - 8px) !important;
+  min-height: 24px !important;
+}
+
+/* Style filter input fields to match app theme */
+.ag-theme-quartz .ag-input-field-input {
+  height: 27px !important;
+  line-height: 27px !important;
+  padding: 0 8px !important;
+  margin: auto 0 !important;
+  background-color: #f9fafb !important; /* gray-50 */
+  border: 1px solid #e5e7eb !important; /* gray-200 */
+  border-radius: 4px !important;
+  color: #374151 !important; /* gray-700 */
+}
+
+.ag-theme-quartz .ag-input-field-input:focus {
+  outline: 2px solid #3b82f6 !important; /* blue-500 */
+  outline-offset: -2px !important;
+  border-color: #3b82f6 !important;
+}
+
+.ag-theme-quartz .ag-floating-filter .ag-input-field {
+  display: flex !important;
+  align-items: center !important;
+  height: 100% !important;
+  padding: 0 !important;
+  margin-left: 8px !important;
+  margin-right: 4px !important;
+}
+
+/* Ensure the floating filter body is properly centered */
+.ag-theme-quartz .ag-floating-filter-body {
+  display: flex !important;
+  align-items: center !important;
+  height: 100% !important;
+}
+
+.dark .ag-theme-quartz .ag-floating-filter-input,
+.dark .ag-theme-quartz .ag-input-field-input {
+  background-color: #1f2937 !important; /* gray-800 */
+  border-color: #4b5563 !important; /* gray-600 */
+  color: #e5e7eb !important; /* gray-200 */
+}
+
+.dark .ag-theme-quartz .ag-input-field-input:focus {
+  outline-color: #60a5fa !important; /* blue-400 */
+  border-color: #60a5fa !important;
+}
+
+/* Selected row styling */
+.ag-theme-quartz .ag-row-selected {
+  background-color: #dbeafe !important;
+}
+
+.dark .ag-theme-quartz .ag-row-selected {
+  background-color: #1e3a8a !important;
+}
+
+/* Custom scrollbar styles */
+.overflow-x-auto::-webkit-scrollbar {
+  height: 6px;
+}
+
+.overflow-x-auto::-webkit-scrollbar-track {
+  background-color: rgb(229 231 235); /* gray-200 */
+}
+
+.dark .overflow-x-auto::-webkit-scrollbar-track {
+  background-color: rgb(55 65 81); /* gray-700 */
+}
+
+.overflow-x-auto::-webkit-scrollbar-thumb {
+  background-color: rgb(156 163 175); /* gray-400 */
+  border-radius: 0.25rem;
+}
+
+.dark .overflow-x-auto::-webkit-scrollbar-thumb {
+  background-color: rgb(75 85 99); /* gray-600 */
+}
+
+.overflow-x-auto::-webkit-scrollbar-thumb:hover {
+  background-color: rgb(107 114 128); /* gray-500 */
+}
+
+.dark .overflow-x-auto::-webkit-scrollbar-thumb:hover {
+  background-color: rgb(107 114 128); /* gray-500 */
+}
+
+/* Force checkbox column to be narrow - override AG-Grid defaults */
+.ag-theme-quartz .ag-header-viewport .ag-header-cell.ag-column-select,
+.ag-theme-quartz .ag-body-viewport .ag-cell[col-id="0"],
+.ag-theme-quartz .ag-pinned-left-cols-container .ag-cell[col-id="0"] {
+  width: 36px !important;
+  min-width: 36px !important;
+  max-width: 36px !important;
+}
+
+/* Override AG-Grid's inline styles for checkbox column */
+.ag-theme-quartz [style*="width: 48px"] {
+  width: 36px !important;
+}
+
+/* Ensure checkbox wrapper doesn't add padding */
+.ag-theme-quartz .ag-selection-checkbox.ag-cell-wrapper {
+  padding: 0 !important;
+}
+
+/* CRITICAL OVERRIDES - Must be last to ensure precedence */
+/* Force header backgrounds */
+.ag-theme-quartz .ag-header,
+.ag-theme-quartz .ag-header-viewport,
+.ag-theme-quartz .ag-header-container {
+  background: #e0e7ff !important;
+}
+
+/* Force each header cell background */
+.ag-theme-quartz .ag-header-cell,
+.ag-theme-quartz .ag-header-group-cell {
+  background: #e0e7ff !important;
+}
+
+/* Ensure filter row has distinct background */
+.ag-theme-quartz .ag-floating-filter-container {
+  background: #f3f4f6 !important;
+}
+
+/* Ensure all rows have consistent background */
+.ag-theme-quartz .ag-center-cols-container .ag-row {
+  background-color: #f3f4f6 !important; /* gray-100 */
+}
+
+.dark .ag-theme-quartz .ag-center-cols-container .ag-row {
+  background-color: #1e293b !important;
+}
+
+/* Status bar background */
+.ag-theme-quartz .ag-status-bar {
+  background-color: #e5e7eb !important; /* gray-200 */
+  border-top: 1px solid #d1d5db !important;
+}
+
+.dark .ag-theme-quartz .ag-status-bar {
+  background-color: #111827 !important;
+  border-top: 1px solid #374151 !important;
+}
+
+/* Resizable panel handles */
+[data-panel-resize-handle-id] {
+  position: relative;
+  cursor: col-resize;
+}
+
+[data-panel-resize-handle-id="vertical"] {
+  cursor: row-resize;
+}
+
+/* Add visual indicator on hover */
+[data-panel-resize-handle-id]::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+[data-panel-resize-handle-id]:hover::after {
+  opacity: 1;
+}
+
+/* Horizontal resize handle */
+[data-panel-resize-handle-id]:not([data-panel-resize-handle-id="vertical"])::after {
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px;
+  background: #3b82f6;
+}
+
+/* Vertical resize handle */
+[data-panel-resize-handle-id="vertical"]::after {
+  top: 50%;
+  transform: translateY(-50%);
+  height: 4px;
+  background: #3b82f6;
+}
+
+/* Number field input padding for filter */
+.ag-theme-quartz .ag-number-field-input {
+  padding-left: 26px !important;
+}
+
+/* Editable cell styles */
+.ag-theme-quartz .ag-cell.ag-cell-inline-editing {
+  background-color: #e0f2fe;
+  border: 2px solid #0284c7 !important;
+}
+
+.ag-theme-quartz.ag-theme-dark .ag-cell.ag-cell-inline-editing {
+  background-color: #1e3a8a;
+  border: 2px solid #3b82f6 !important;
+}
+
+/* Range selection styles */
+.ag-theme-quartz .ag-range-selected:not(.ag-cell-inline-editing) {
+  background-color: rgba(14, 165, 233, 0.2);
+}
+
+.ag-theme-quartz.ag-theme-dark .ag-range-selected:not(.ag-cell-inline-editing) {
+  background-color: rgba(59, 130, 246, 0.2);
+}
+
+/* Editable cells hover */
+.ag-theme-quartz .ag-cell-range-selected:not(.ag-cell-range-single-cell) {
+  background-color: rgba(14, 165, 233, 0.2);
+}
+
+/* Custom selected cells */
+.ag-theme-quartz .ag-cell.ag-cell-range-selected {
+  background-color: rgba(59, 130, 246, 0.3) !important;
+  border: 1px solid #3b82f6 !important;
+}
+
+.dark .ag-theme-quartz .ag-cell.ag-cell-range-selected {
+  background-color: rgba(59, 130, 246, 0.4) !important;
+  border: 1px solid #60a5fa !important;
+}
+
+/* Fix padding for ag-Grid filter inputs */
+.ag-theme-quartz .ag-ltr .ag-column-select-header-filter-wrapper input.ag-text-field-input, .ag-theme-quartz .ag-ltr .ag-column-select-header-filter-wrapper input.ag-number-field-input, .ag-theme-quartz .ag-ltr .ag-filter-toolpanel-search input.ag-text-field-input, .ag-theme-quartz .ag-ltr .ag-filter-toolpanel-search input.ag-number-field-input, .ag-theme-quartz .ag-ltr .ag-mini-filter input.ag-text-field-input, .ag-theme-quartz .ag-ltr .ag-mini-filter input.ag-number-field-input, .ag-theme-quartz .ag-ltr .ag-filter-filter input.ag-text-field-input, .ag-theme-quartz .ag-ltr .ag-filter-filter input.ag-number-field-input, .ag-theme-quartz-dark .ag-ltr .ag-column-select-header-filter-wrapper input.ag-text-field-input, .ag-theme-quartz-dark .ag-ltr .ag-column-select-header-filter-wrapper input.ag-number-field-input, .ag-theme-quartz-dark .ag-ltr .ag-filter-toolpanel-search input.ag-text-field-input, .ag-theme-quartz-dark .ag-ltr .ag-filter-toolpanel-search input.ag-number-field-input, .ag-theme-quartz-dark .ag-ltr .ag-mini-filter input.ag-text-field-input, .ag-theme-quartz-dark .ag-ltr .ag-mini-filter input.ag-number-field-input, .ag-theme-quartz-dark .ag-ltr .ag-filter-filter input.ag-text-field-input, .ag-theme-quartz-dark .ag-ltr .ag-filter-filter input.ag-number-field-input, .ag-theme-quartz-auto-dark .ag-ltr .ag-column-select-header-filter-wrapper input.ag-text-field-input, .ag-theme-quartz-auto-dark .ag-ltr .ag-column-select-header-filter-wrapper input.ag-number-field-input, .ag-theme-quartz-auto-dark .ag-ltr .ag-filter-toolpanel-search input.ag-text-field-input, .ag-theme-quartz-auto-dark .ag-ltr .ag-filter-toolpanel-search input.ag-number-field-input, .ag-theme-quartz-auto-dark .ag-ltr .ag-mini-filter input.ag-text-field-input, .ag-theme-quartz-auto-dark .ag-ltr .ag-mini-filter input.ag-number-field-input, .ag-theme-quartz-auto-dark .ag-ltr .ag-filter-filter input.ag-text-field-input, .ag-theme-quartz-auto-dark .ag-ltr .ag-filter-filter input.ag-number-field-input {
+    padding-left: 26px !important;
+}
