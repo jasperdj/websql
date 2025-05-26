@@ -224,7 +224,7 @@ export function TableList({ onInspectTable, refreshTrigger }: TableListProps) {
     setEditName(tableName);
   };
 
-  const handleDelete = async (tableName: string, type: 'table' | 'view') => {
+  const handleDelete = async (tableName: string, _type: 'table' | 'view') => {
     // Check if multiple tables are selected
     const tablesToDelete = selectedTables.has(tableName) ? Array.from(selectedTables) : [tableName];
     const deleteCount = tablesToDelete.length;

@@ -1,5 +1,5 @@
 import { duckdbService } from './duckdb';
-import type { editor, languages, Position, IRange } from 'monaco-editor';
+import type { editor, languages, Position } from 'monaco-editor';
 
 interface TableSchema {
   tableName: string;
@@ -71,8 +71,8 @@ export class SQLAutocompleteProvider implements languages.CompletionItemProvider
   async provideCompletionItems(
     model: editor.ITextModel,
     position: Position,
-    context: languages.CompletionContext,
-    token: any
+    _context: languages.CompletionContext,
+    _token: any
   ): Promise<languages.CompletionList> {
     const textUntilPosition = model.getValueInRange({
       startLineNumber: 1,
@@ -92,8 +92,6 @@ export class SQLAutocompleteProvider implements languages.CompletionItemProvider
     const suggestions: languages.CompletionItem[] = [];
 
     // Determine context - look for the last SQL keyword before cursor
-    const lines = textUntilPosition.split('\n');
-    const currentLine = lines[lines.length - 1];
     const textBeforeCursor = textUntilPosition.slice(-200); // Look at last 200 chars for context
     
     // Check what keyword we're after
