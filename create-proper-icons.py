@@ -11,17 +11,17 @@ def create_png(width, height, color=(37, 99, 235)):  # Blue color
     png_signature = b'\x89PNG\r\n\x1a\n'
     
     # IHDR chunk
-    ihdr_data = struct.pack('>IIBBBBB', width, height, 8, 2, 0, 0, 0)  # RGB, 8-bit
+    ihdr_data = struct.pack('>IIBBBBB', width, height, 8, 6, 0, 0, 0)  # RGBA, 8-bit
     ihdr_crc = zlib.crc32(b'IHDR' + ihdr_data) & 0xffffffff  # Calculate correct CRC
     ihdr_chunk = struct.pack('>I', 13) + b'IHDR' + ihdr_data + struct.pack('>I', ihdr_crc)
     
-    # Create image data (simple solid color)
-    row_bytes = width * 3  # 3 bytes per RGB pixel
+    # Create image data (simple solid color with alpha)
+    row_bytes = width * 4  # 4 bytes per RGBA pixel
     image_data = b''
     for y in range(height):
         row = b'\x00'  # Filter type: None
         for x in range(width):
-            row += bytes(color)  # RGB pixel
+            row += bytes(color) + b'\xff'  # RGBA pixel (full opacity)
         image_data += row
     
     # Compress with zlib
