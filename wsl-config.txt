@@ -1,0 +1,18 @@
+# WSL Configuration to enable systemd and WSLg
+# Copy this to /etc/wsl.conf (requires sudo)
+
+[boot]
+systemd=true
+
+[interop]
+enabled=true
+appendWindowsPath=true
+
+[automount]
+enabled=true
+options="metadata"
+
+# To apply:
+# 1. Run: sudo cp wsl-config.txt /etc/wsl.conf
+# 2. In Windows PowerShell: wsl --shutdown
+# 3. Start WSL again

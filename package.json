@@ -17,6 +17,7 @@
     "release": "npm run build && npm run tauri:build"
   },
   "dependencies": {
+    "@tauri-apps/api": "^2.5.0",
     "@duckdb/duckdb-wasm": "^1.29.1-dev132.0",
     "@modelcontextprotocol/server-filesystem": "^2025.3.28",
     "@modelcontextprotocol/server-memory": "^2025.4.25",

@@ -166,3 +166,5 @@ Puppeteer may fail on ARM64/aarch64 systems due to architecture incompatibility 
 ## Memories
 - Always echo -e "\a" as the LAST SEPARATE command before finishing a task (cannot be appended with &). This ensures the audio alert is played after task completion.
 - Do not mention Claude in git commits or anywhere in the source code
+- Always check github deployment status after commiting/pushing which would trigger a deployment and fix any issues with the deployment
+- When github deployment hsa been triggered and is running then continue triggering sleep until the deployment job is finished and then check the result

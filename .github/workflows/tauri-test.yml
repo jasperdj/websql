@@ -1,0 +1,42 @@
+name: Test Tauri Build
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+jobs:
+  test-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Build frontend
+        run: npm run build
+        
+      - name: Install Tauri CLI
+        run: npm install -g @tauri-apps/cli
+        
+      - name: Build Tauri app (Windows)
+        run: |
+          cd src-tauri
+          cargo build --release
+          cd ..
+          npx tauri build
+        
+      - name: List build outputs
+        run: |
+          echo "Contents of src-tauri/target/release/bundle:"
+          dir src-tauri\target\release\bundle
+        shell: cmd
