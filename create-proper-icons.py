@@ -2,6 +2,7 @@
 
 import os
 import struct
+import zlib
 
 def create_png(width, height, color=(37, 99, 235)):  # Blue color
     """Create a minimal valid PNG file"""
@@ -11,7 +12,7 @@ def create_png(width, height, color=(37, 99, 235)):  # Blue color
     
     # IHDR chunk
     ihdr_data = struct.pack('>IIBBBBB', width, height, 8, 2, 0, 0, 0)  # RGB, 8-bit
-    ihdr_crc = 0x373e9b53 if width == 32 else 0x7A7A637B  # Precomputed CRC
+    ihdr_crc = zlib.crc32(b'IHDR' + ihdr_data) & 0xffffffff  # Calculate correct CRC
     ihdr_chunk = struct.pack('>I', 13) + b'IHDR' + ihdr_data + struct.pack('>I', ihdr_crc)
     
     # Create image data (simple solid color)
@@ -23,8 +24,7 @@ def create_png(width, height, color=(37, 99, 235)):  # Blue color
             row += bytes(color)  # RGB pixel
         image_data += row
     
-    # Compress with minimal zlib
-    import zlib
+    # Compress with zlib
     compressed = zlib.compress(image_data, 1)
     
     # IDAT chunk
