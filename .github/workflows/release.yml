@@ -39,7 +39,6 @@ jobs:
           path: dist/
 
   build-tauri:
-    needs: build-web
     strategy:
       fail-fast: false
       matrix:
