@@ -97,6 +97,9 @@ jobs:
 
       - name: Install frontend dependencies
         run: npm ci
+      
+      - name: Sync versions
+        run: npm run version:sync
 
       - name: Build Tauri app
         uses: tauri-apps/tauri-action@v0
@@ -104,6 +107,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           args: ${{ matrix.args }}
+          updaterJsonKeepUniversal: true
 
       - name: Upload Tauri artifacts
         uses: actions/upload-artifact@v4
@@ -113,3 +117,90 @@ jobs:
             src-tauri/target/release/bundle/
             src-tauri/target/universal-apple-darwin/release/bundle/
 
+  release:
+    needs: [build-web, build-tauri]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      
+      - name: Create latest.json for updater
+        run: |
+          VERSION="${GITHUB_REF#refs/tags/}"
+          if [ -z "$VERSION" ] || [ "$VERSION" = "$GITHUB_REF" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          fi
+          VERSION="${VERSION#v}"
+          
+          cat > latest.json << EOF
+          {
+            "version": "$VERSION",
+            "pub_date": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
+            "platforms": {
+              "darwin-x86_64": {
+                "url": "https://github.com/jjasp/websql/releases/download/v$VERSION/WebSQL.Data.Compare_${VERSION}_x64.dmg",
+                "signature": ""
+              },
+              "darwin-aarch64": {
+                "url": "https://github.com/jjasp/websql/releases/download/v$VERSION/WebSQL.Data.Compare_${VERSION}_aarch64.dmg",
+                "signature": ""
+              },
+              "linux-x86_64": {
+                "url": "https://github.com/jjasp/websql/releases/download/v$VERSION/web-sql-data-compare_${VERSION}_amd64.AppImage",
+                "signature": ""
+              },
+              "windows-x86_64": {
+                "url": "https://github.com/jjasp/websql/releases/download/v$VERSION/WebSQL.Data.Compare_${VERSION}_x64-setup.exe",
+                "signature": ""
+              }
+            }
+          }
+          EOF
+      
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: WebSQL ${{ github.ref_name }}
+          body: |
+            # WebSQL Data Compare Tool
+            
+            ## 📦 Downloads
+            
+            ### Desktop App
+            - **Windows**: `.msi` and `.exe` installers
+            - **macOS**: `.dmg` installer (Universal binary)
+            - **Linux**: `.AppImage` and `.deb` packages
+            
+            ### Web Version
+            - 🌐 [Use WebSQL Online](https://jasperdj.github.io/websql/)
+            
+            ## ✨ What's New
+            - Auto-updater support for desktop app
+            - Check for updates in the app menu
+            
+            ## 📋 Features
+            - Import CSV, Parquet files
+            - Write SQL queries with syntax highlighting
+            - Export results to CSV
+            - Save queries and projects
+            - Persistent tables using OPFS
+            - Fast DuckDB WASM engine
+            
+            ---
+            *First time using WebSQL? Check out our [Quick Start Guide](https://github.com/jasperdj/websql#quick-start)*
+          files: |
+            artifacts/**/*.dmg
+            artifacts/**/*.AppImage
+            artifacts/**/*.deb
+            artifacts/**/*.exe
+            artifacts/**/*.msi
+            latest.json
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

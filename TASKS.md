@@ -2,22 +2,22 @@
 
 ## Current Tasks
 
-### Phase 1: Electron App Foundation ✅
-- [x] Set up Electron build pipeline
-  - [x] Configure electron-builder with TypeScript
-  - [x] Add main process with IPC handlers
-  - [x] Set up preload script with contextBridge for security
-  - [x] Implement capability detection (web vs electron)
-  - [ ] Create auto-updater configuration using GitHub releases
+### Phase 1: Tauri App Foundation ✅
+- [x] Set up Tauri build pipeline
+  - [x] Configure Tauri with TypeScript
+  - [x] Add main process with plugin support
+  - [x] Set up capabilities for security
+  - [x] Implement capability detection (web vs Tauri)
+  - [x] Create auto-updater configuration using GitHub releases
   
 - [x] GitHub Actions CI/CD
-  - [x] Configure dual build workflow (web + electron)
+  - [x] Configure dual build workflow (web + Tauri)
   - [x] Web build → GitHub Pages
-  - [x] Electron builds → GitHub Releases (Win/Mac/Linux)
-  - [ ] Auto-generate download links in web app
-  - [ ] Version synchronization between builds
+  - [x] Tauri builds → GitHub Releases (Win/Mac/Linux)
+  - [x] Auto-generate download links in web app
+  - [x] Version synchronization between builds
 
-### Phase 2: External Data Sources (Electron Only)
+### Phase 2: External Data Sources (Tauri Only)
 - [ ] Local File System Integration
   - Add "Local Folder" option in Import section
   - Implement directory picker dialog
@@ -87,7 +87,7 @@
 - [ ] More keyboard shortcuts
 - [ ] Column statistics in results
 
-### Future Electron Enhancements
+### Future Tauri Enhancements
 - [ ] More database support (MySQL, SQLite, SQL Server)
 - [ ] Cloud storage integration (S3, Azure Blob, GCS)
 - [ ] REST API as data source
@@ -98,8 +98,8 @@
 ### Testing & Quality
 - [ ] Unit test setup (Vitest)
 - [ ] Integration tests for external sources
-- [ ] E2E tests for both web and electron
-- [ ] Security audit for electron IPC
+- [ ] E2E tests for both web and Tauri
+- [ ] Security audit for Tauri IPC
 
 ## Completed Tasks Archive
 ### Setup & Foundation

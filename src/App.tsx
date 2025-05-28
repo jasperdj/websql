@@ -6,6 +6,8 @@ import { TableViewer } from '@/components/TableViewer';
 import { TableList } from '@/components/TableList';
 import { TabManager } from '@/components/TabManager';
 import { SavedQueries } from '@/components/SavedQueries';
+import { UpdateChecker } from '@/components/UpdateChecker';
+import { DownloadLinks } from '@/components/DownloadLinks';
 import type { QueryResult } from '@/lib/duckdb';
 import type { Tab } from '@/types/tabs';
 import { duckdbService } from '@/lib/duckdb';
@@ -294,6 +296,8 @@ function AppContent() {
           </Panel>
         </PanelGroup>
       </main>
+      <UpdateChecker />
+      <DownloadLinks />
     </div>
   );
 }

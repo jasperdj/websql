@@ -21,6 +21,19 @@ jobs:
       - name: Install dependencies
         run: npm ci
       
+      - name: Check version synchronization
+        run: |
+          # Run sync-version in check mode
+          node scripts/sync-version.js
+          # Check if any files were modified
+          if ! git diff --quiet; then
+            echo "❌ Version files are not synchronized!"
+            echo "Run 'npm run version:sync' to fix this."
+            git diff --name-only
+            exit 1
+          fi
+          echo "✅ All version files are synchronized"
+      
       - name: Run linter
         run: npm run lint
       

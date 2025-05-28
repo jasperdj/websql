@@ -14,10 +14,10 @@
     "tauri:build": "tauri build",
     "tauri:build:win": "tauri build --target x86_64-pc-windows-msvc",
     "version:bump": "node scripts/bump-version.js",
+    "version:sync": "node scripts/sync-version.js",
     "release": "npm run build && npm run tauri:build"
   },
   "dependencies": {
-    "@tauri-apps/api": "^2.5.0",
     "@duckdb/duckdb-wasm": "^1.29.1-dev132.0",
     "@modelcontextprotocol/server-filesystem": "^2025.3.28",
     "@modelcontextprotocol/server-memory": "^2025.4.25",
@@ -25,6 +25,9 @@
     "@monaco-editor/react": "^4.7.0",
     "@tanstack/react-table": "^8.21.3",
     "@tanstack/react-virtual": "^3.13.9",
+    "@tauri-apps/api": "^2.5.0",
+    "@tauri-apps/plugin-process": "^2.2.1",
+    "@tauri-apps/plugin-updater": "^2.7.1",
     "ag-grid-community": "^33.3.0",
     "ag-grid-react": "^33.3.0",
     "class-variance-authority": "^0.7.1",
@@ -42,6 +45,7 @@
   "devDependencies": {
     "@eslint/js": "^9.25.0",
     "@tailwindcss/postcss": "^4.1.7",
+    "@tauri-apps/cli": "^2.2.0",
     "@types/node": "^20.11.0",
     "@types/react": "^19.1.5",
     "@types/react-dom": "^19.1.5",
@@ -58,7 +62,6 @@
     "typescript": "~5.8.3",
     "typescript-eslint": "^8.30.1",
     "vite": "^6.3.5",
-    "wait-on": "^7.2.0",
-    "@tauri-apps/cli": "^2.2.0"
+    "wait-on": "^7.2.0"
   }
 }

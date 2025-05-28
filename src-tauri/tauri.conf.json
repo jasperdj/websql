@@ -44,5 +44,12 @@
         "language": "en-US"
       }
     }
+  },
+  "plugins": {
+    "updater": {
+      "endpoints": [
+        "https://github.com/jjasp/websql/releases/latest/download/latest.json"
+      ]
+    }
   }
 }
