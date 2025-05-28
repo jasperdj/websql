@@ -169,3 +169,4 @@ Puppeteer may fail on ARM64/aarch64 systems due to architecture incompatibility 
 - Always check github deployment status after commiting/pushing which would trigger a deployment and fix any issues with the deployment
 - When github deployment hsa been triggered and is running then continue triggering sleep until the deployment job is finished and then check the result
 - Never assume CI/gitlab actions will pass, always check it
+- Always lint and typecheck locally before commiting/pushing
