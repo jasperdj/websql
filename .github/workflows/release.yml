@@ -148,6 +148,11 @@ jobs:
         with:
           path: artifacts
       
+      - name: List all artifacts
+        run: |
+          echo "=== All artifacts ==="
+          find artifacts -type f -name "*.exe" -o -name "*.msi" -o -name "*.dmg" -o -name "*.AppImage" -o -name "*.deb" | sort
+      
       - name: Create latest.json for updater
         run: |
           VERSION="${GITHUB_REF#refs/tags/}"
@@ -219,7 +224,6 @@ jobs:
             artifacts/**/*.deb
             artifacts/**/*.exe
             artifacts/**/*.msi
-            artifacts/**/WebSQL-Portable.exe
             latest.json
           draft: false
           prerelease: false
