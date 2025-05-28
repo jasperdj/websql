@@ -119,8 +119,11 @@ jobs:
           New-Item -ItemType Directory -Force -Path "portable"
           
           # Find the main executable from the build output (not installer)
-          $mainExe = Get-ChildItem -Path "src-tauri/target/release" -Filter "*.exe" -Exclude "*setup*", "build", "deps" | 
-                     Where-Object { $_.Length -gt 1MB } | 
+          $mainExe = Get-ChildItem -Path "src-tauri/target/release" -Filter "*.exe" | 
+                     Where-Object { 
+                       $_.Name -notmatch "setup|installer|build|deps" -and 
+                       $_.Length -gt 1MB 
+                     } | 
                      Sort-Object Length -Descending | 
                      Select-Object -First 1
           
