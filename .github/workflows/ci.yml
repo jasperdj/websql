@@ -84,5 +84,6 @@ jobs:
       
       - name: Check Tauri build
         run: |
+          npm run tauri info
           cd src-tauri
           cargo check
