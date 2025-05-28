@@ -77,4 +77,14 @@ chrome-linux/
 .local-chromium/
 
 # Tauri
-src-tauri/target/ 
+src-tauri/target/
+
+# Build artifacts
+msi/
+nsis/
+WebSQL.exe
+WebSQL-Portable-Windows.zip
+*.msi
+*.exe
+!scripts/**/*.ps1
+!scripts/**/*.sh 
