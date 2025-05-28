@@ -1,0 +1,60 @@
+name: Create Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag (e.g., v0.1.2)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Download Windows artifacts
+        uses: dawidd6/action-download-artifact@v2
+        with:
+          workflow: tauri-windows-only.yml
+          workflow_conclusion: success
+          name: windows-build
+          path: ./artifacts/windows
+          
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.event.inputs.version }}
+          name: WebSQL ${{ github.event.inputs.version }}
+          body: |
+            # WebSQL Data Compare Tool
+            
+            ## 📦 Downloads
+            
+            ### Desktop App
+            - **Windows**: See attached `.msi` and `.exe` files below
+            
+            ### Web Version
+            - 🌐 [Use WebSQL Online](https://jasperdj.github.io/websql/)
+            
+            ## ✨ Features
+            - Import CSV, Parquet files
+            - Write SQL queries with syntax highlighting
+            - Export results to CSV
+            - Save queries and projects
+            - Persistent tables using OPFS
+            - Fast DuckDB WASM engine
+            
+            ---
+            *First time using WebSQL? Check out our [Quick Start Guide](https://github.com/jasperdj/websql#quick-start)*
+          files: |
+            ./artifacts/windows/*.msi
+            ./artifacts/windows/*.exe
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

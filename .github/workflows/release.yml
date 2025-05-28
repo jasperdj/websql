@@ -70,6 +70,11 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.rust_targets }}
+      
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
 
       - name: Install dependencies (Ubuntu)
         if: matrix.platform == 'ubuntu-22.04'
@@ -98,47 +103,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tagName: ${{ github.event.inputs.version || github.ref_name }}
-          releaseName: 'WebSQL ${{ github.event.inputs.version || github.ref_name }}'
-          releaseBody: |
-            # WebSQL Data Compare Tool
-            
-            A powerful browser-based tool for comparing data across different sources using SQL queries.
-            
-            ## 📦 Downloads
-            
-            ### Desktop Apps (Recommended)
-            - **Windows**: `WebSQL_x64_en-US.msi` (installer) or `WebSQL_x64-setup.exe`
-            - **macOS**: `WebSQL_universal.dmg` (works on both Intel and Apple Silicon Macs)
-            - **Linux**: 
-              - `WebSQL_amd64.AppImage` (works on most distributions)
-              - `WebSQL_amd64.deb` (Debian/Ubuntu)
-            
-            ### Web Version
-            - 🌐 [Use WebSQL Online](https://jasperdj.github.io/websql/)
-            
-            ## ✨ What's New
-            - Tauri-based desktop app (10MB download, 50MB RAM usage)
-            - Native performance with system WebView
-            - Cross-platform support (Windows, macOS, Linux)
-            - All your data stays local - no cloud uploads
-            
-            ## 🚀 Features
-            - Import CSV, Parquet files
-            - Write SQL queries with syntax highlighting
-            - Export results to CSV
-            - Save queries and projects
-            - Combine multiple files
-            - Persistent tables using OPFS
-            - Fast DuckDB WASM engine
-            
-            ## 📝 Changelog
-            See [CHANGELOG.md](https://github.com/jasperdj/websql/blob/main/CHANGELOG.md)
-            
-            ---
-            *First time using WebSQL? Check out our [Quick Start Guide](https://github.com/jasperdj/websql#quick-start)*
-          releaseDraft: false
-          prerelease: false
           args: ${{ matrix.args }}
 
       - name: Upload Tauri artifacts
