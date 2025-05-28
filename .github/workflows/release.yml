@@ -111,22 +111,67 @@ jobs:
 
       - name: Create Windows Portable
         if: matrix.platform == 'windows-latest'
-        shell: bash
+        shell: powershell
         run: |
-          # Find the built executable
-          EXE_PATH=$(find src-tauri/target/release -name "*.exe" -not -path "*/deps/*" -not -name "*setup*" | head -1)
-          if [ -n "$EXE_PATH" ]; then
+          # Find the NSIS installer
+          $installer = Get-ChildItem -Path "src-tauri/target/release/bundle/nsis" -Filter "*setup*.exe" | Select-Object -First 1
+          
+          if ($installer) {
+            Write-Host "Found installer: $($installer.FullName)"
+            
             # Create portable directory
-            mkdir -p portable
-            # Copy the executable with a clear name
-            cp "$EXE_PATH" "portable/WebSQL-Portable.exe"
-            echo "Created portable executable: portable/WebSQL-Portable.exe"
-            # Also copy any required DLLs from the same directory
-            EXE_DIR=$(dirname "$EXE_PATH")
-            find "$EXE_DIR" -name "*.dll" -exec cp {} portable/ \;
-          else
-            echo "Warning: Could not find executable"
-          fi
+            New-Item -ItemType Directory -Force -Path "portable"
+            
+            # Use 7-Zip to extract the installer
+            $7zipPath = "${env:ProgramFiles}\7-Zip\7z.exe"
+            if (Test-Path $7zipPath) {
+              Write-Host "Extracting installer contents..."
+              & $7zipPath x -o"temp_extract" $installer.FullName -y
+              
+              # Find the main executable in extracted files
+              $mainExe = Get-ChildItem -Path "temp_extract" -Filter "*.exe" -Recurse | 
+                         Where-Object { 
+                           $_.Name -match "websql|WebSQL" -and 
+                           $_.Name -notmatch "setup|installer|uninstall" -and
+                           $_.Length -gt 1MB
+                         } | 
+                         Sort-Object Length -Descending | 
+                         Select-Object -First 1
+              
+              if ($mainExe) {
+                # Copy the main executable
+                Copy-Item $mainExe.FullName "portable/WebSQL-Portable.exe"
+                Write-Host "Created portable executable: portable/WebSQL-Portable.exe ($([math]::Round($mainExe.Length / 1MB, 2)) MB)"
+                
+                # Copy all files from the same directory (likely contains required DLLs)
+                $exeDir = $mainExe.Directory
+                Get-ChildItem -Path $exeDir -File | ForEach-Object {
+                  if ($_.Name -ne $mainExe.Name) {
+                    Copy-Item $_.FullName "portable/"
+                    Write-Host "Copied: $($_.Name)"
+                  }
+                }
+                
+                # Clean up temp directory
+                Remove-Item -Path "temp_extract" -Recurse -Force
+              } else {
+                Write-Host "Warning: Could not find main executable in installer"
+                Get-ChildItem -Path "temp_extract" -Filter "*.exe" -Recurse | ForEach-Object {
+                  Write-Host "Found exe: $($_.FullName) ($([math]::Round($_.Length / 1KB, 2)) KB)"
+                }
+              }
+            } else {
+              Write-Host "Warning: 7-Zip not found, creating basic portable"
+              # Fallback: just copy the basic exe
+              $basicExe = Get-ChildItem -Path "src-tauri/target/release" -Filter "*.exe" -Exclude "*setup*" | Select-Object -First 1
+              if ($basicExe) {
+                Copy-Item $basicExe.FullName "portable/WebSQL-Portable.exe"
+                Write-Host "Created basic portable: portable/WebSQL-Portable.exe"
+              }
+            }
+          } else {
+            Write-Host "Warning: Could not find NSIS installer"
+          }
 
       - name: Upload Tauri artifacts
         uses: actions/upload-artifact@v4
@@ -197,9 +242,12 @@ jobs:
             ## 📦 Downloads
             
             ### Desktop App
-            - **Windows**: `.msi` and `.exe` installers, plus portable `.exe`
+            - **Windows**: 
+              - `.msi` installer (recommended)
+              - `.exe` NSIS installer  
+              - `WebSQL-Portable.exe` - No installation required
             - **macOS**: `.dmg` installer (Universal binary)
-            - **Linux**: `.AppImage` and `.deb` packages
+            - **Linux**: `.AppImage` (portable) and `.deb` packages
             
             ### Web Version
             - 🌐 [Use WebSQL Online](https://jasperdj.github.io/websql/)
