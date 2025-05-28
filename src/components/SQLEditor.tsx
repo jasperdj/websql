@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import Editor from '@monaco-editor/react';
+import type { editor } from 'monaco-editor';
 import { Play, Loader2, Bookmark, BookmarkCheck } from 'lucide-react';
 import { duckdbService } from '@/lib/duckdb';
 import type { QueryResult } from '@/lib/duckdb';
@@ -163,7 +164,7 @@ export function SQLEditor({ query, onChange, onQueryResult, tabTitle, savedQuery
             wordWrap: 'on',
           }}
           onMount={async (editor, monaco) => {
-            monacoRef.current = monaco;
+            monacoRef.current = editor;
             
             // Add keyboard shortcut for running query
             editor.addAction({

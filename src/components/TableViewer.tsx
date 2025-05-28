@@ -76,7 +76,7 @@ export function TableViewer({ result, query }: TableViewerProps) {
         }
         
         // Add selected class if cell is in selection
-        const cellKey = `${params.rowIndex}-${params.column.colId}`;
+        const cellKey = `${params.rowIndex}-${params.column?.getColId()}`;
         if (selectedCells.has(cellKey)) {
           classes.push('ag-cell-range-selected');
         }
@@ -195,14 +195,15 @@ export function TableViewer({ result, query }: TableViewerProps) {
   }, [editableInfo.isEditable, lastClickedCell]);
 
   // Handle paste operation
-  const handlePaste = useCallback(async (event: ClipboardEvent) => {
+  const handlePaste = useCallback((event: Event) => {
+    const clipboardEvent = event as ClipboardEvent;
     if (!editableInfo.isEditable || !editableInfo.tableName || !gridApi || selectedCells.size === 0) return;
     
     // Get the pasted value
-    const pastedData = event.clipboardData?.getData('text/plain')?.trim();
+    const pastedData = clipboardEvent.clipboardData?.getData('text/plain')?.trim();
     if (!pastedData) return;
     
-    event.preventDefault();
+    clipboardEvent.preventDefault();
     
     // Check if selection spans multiple columns
     const columns = new Set<string>();
@@ -216,31 +217,33 @@ export function TableViewer({ result, query }: TableViewerProps) {
       return;
     }
     
-    // Update each selected cell
-    for (const cellKey of selectedCells) {
-      const [rowIndexStr, colId] = cellKey.split('-');
-      const rowIndex = parseInt(rowIndexStr);
-      
-      const node = gridApi.getDisplayedRowAtIndex(rowIndex);
-      if (node) {
-        const oldValue = node.data[colId];
-        node.setDataValue(colId, pastedData);
+    // Update each selected cell asynchronously
+    (async () => {
+      for (const cellKey of selectedCells) {
+        const [rowIndexStr, colId] = cellKey.split('-');
+        const rowIndex = parseInt(rowIndexStr);
         
-        // Trigger the update to database
-        const event = {
-          data: node.data,
-          oldValue,
-          newValue: pastedData,
-          colDef: { field: colId },
-          node
-        } as CellValueChangedEvent;
-        
-        await onCellValueChanged(event);
+        const node = gridApi.getDisplayedRowAtIndex(rowIndex);
+        if (node) {
+          const oldValue = node.data[colId];
+          node.setDataValue(colId, pastedData);
+          
+          // Trigger the update to database
+          const event = {
+            data: node.data,
+            oldValue,
+            newValue: pastedData,
+            colDef: { field: colId },
+            node
+          } as CellValueChangedEvent;
+          
+          await onCellValueChanged(event);
+        }
       }
-    }
-    
-    // Clear selection after paste
-    setSelectedCells(new Set());
+      
+      // Clear selection after paste
+      setSelectedCells(new Set());
+    })();
   }, [editableInfo, gridApi, selectedCells, onCellValueChanged]);
 
   // Add paste event listener
