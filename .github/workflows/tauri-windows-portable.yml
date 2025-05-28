@@ -30,18 +30,17 @@ jobs:
       - name: Install dependencies
         run: npm ci
         
-      - name: Build frontend
-        run: npm run build
-        
-      - name: Build Tauri app (no bundle)
-        run: |
-          cd src-tauri
-          cargo build --release
+      - name: Build Tauri app
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           
-      - name: Copy executable
+      - name: Extract portable executable from NSIS
         run: |
           mkdir -p dist\windows-portable
-          copy src-tauri\target\release\websql-data-compare.exe dist\windows-portable\WebSQL.exe
+          # The NSIS installer contains the portable exe
+          copy src-tauri\target\release\bundle\nsis\*.exe dist\windows-portable\
+          dir dist\windows-portable\
           
       - name: Upload portable executable
         uses: actions/upload-artifact@v4
