@@ -109,6 +109,25 @@ jobs:
           args: ${{ matrix.args }}
           updaterJsonKeepUniversal: true
 
+      - name: Create Windows Portable
+        if: matrix.platform == 'windows-latest'
+        shell: bash
+        run: |
+          # Find the built executable
+          EXE_PATH=$(find src-tauri/target/release -name "*.exe" -not -path "*/deps/*" -not -name "*setup*" | head -1)
+          if [ -n "$EXE_PATH" ]; then
+            # Create portable directory
+            mkdir -p portable
+            # Copy the executable with a clear name
+            cp "$EXE_PATH" "portable/WebSQL-Portable.exe"
+            echo "Created portable executable: portable/WebSQL-Portable.exe"
+            # Also copy any required DLLs from the same directory
+            EXE_DIR=$(dirname "$EXE_PATH")
+            find "$EXE_DIR" -name "*.dll" -exec cp {} portable/ \;
+          else
+            echo "Warning: Could not find executable"
+          fi
+
       - name: Upload Tauri artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -116,6 +135,7 @@ jobs:
           path: |
             src-tauri/target/release/bundle/
             src-tauri/target/universal-apple-darwin/release/bundle/
+            portable/
 
   release:
     needs: [build-web, build-tauri]
@@ -172,7 +192,7 @@ jobs:
             ## 📦 Downloads
             
             ### Desktop App
-            - **Windows**: `.msi` and `.exe` installers
+            - **Windows**: `.msi` and `.exe` installers, plus portable `.exe`
             - **macOS**: `.dmg` installer (Universal binary)
             - **Linux**: `.AppImage` and `.deb` packages
             
@@ -199,6 +219,7 @@ jobs:
             artifacts/**/*.deb
             artifacts/**/*.exe
             artifacts/**/*.msi
+            artifacts/**/WebSQL-Portable.exe
             latest.json
           draft: false
           prerelease: false
