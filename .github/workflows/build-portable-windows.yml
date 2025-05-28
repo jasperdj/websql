@@ -1,0 +1,100 @@
+name: Build Portable Windows Executable
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-portable:
+    runs-on: windows-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+          cache-all-crates: true
+          cache-on-failure: true
+          shared-key: "windows-tauri"
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Build Tauri app
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ""
+          
+      - name: Create portable package
+        run: |
+          # Create portable directory
+          mkdir -p portable
+          
+          # Copy the main executable
+          copy "src-tauri\target\release\websql-data-compare.exe" "portable\WebSQL.exe"
+          
+          # Copy WebView2 loader
+          copy "src-tauri\target\release\WebView2Loader.dll" "portable\" -ErrorAction SilentlyContinue
+          
+          # Extract resources from the installer using 7z
+          $installerPath = Get-ChildItem -Path "src-tauri\target\release\bundle\nsis" -Filter "*.exe" | Select-Object -First 1
+          
+          # Download 7-Zip if not available
+          if (!(Test-Path "C:\Program Files\7-Zip\7z.exe")) {
+            Write-Host "Downloading 7-Zip..."
+            Invoke-WebRequest -Uri "https://www.7-zip.org/a/7z2301-x64.exe" -OutFile "7z-installer.exe"
+            Start-Process -FilePath "7z-installer.exe" -ArgumentList "/S" -Wait
+          }
+          
+          # Extract installer to temp directory
+          & "C:\Program Files\7-Zip\7z.exe" x $installerPath.FullName -o"temp_extract" -y
+          
+          # Find and copy resources
+          if (Test-Path "temp_extract\$PLUGINSDIR\app-64.7z") {
+            & "C:\Program Files\7-Zip\7z.exe" x "temp_extract\$PLUGINSDIR\app-64.7z" -o"app_files" -y
+            
+            # Copy necessary files
+            if (Test-Path "app_files\resources") {
+              xcopy "app_files\resources" "portable\resources" /E /I /Y
+            }
+            if (Test-Path "app_files\WebView2Loader.dll") {
+              copy "app_files\WebView2Loader.dll" "portable\"
+            }
+          }
+          
+          # Create a launcher script
+          @"
+          @echo off
+          cd /d "%~dp0"
+          start "" "WebSQL.exe"
+          "@ | Out-File -FilePath "portable\Launch WebSQL.bat" -Encoding ASCII
+          
+          # Clean up
+          Remove-Item -Path "temp_extract" -Recurse -Force -ErrorAction SilentlyContinue
+          Remove-Item -Path "app_files" -Recurse -Force -ErrorAction SilentlyContinue
+          
+          # List portable contents
+          Write-Host "Portable package contents:"
+          Get-ChildItem -Path "portable" -Recurse | Select-Object FullName
+          
+      - name: Create portable archive
+        run: |
+          Compress-Archive -Path "portable\*" -DestinationPath "WebSQL-Portable-Windows.zip"
+          
+      - name: Upload portable package
+        uses: actions/upload-artifact@v4
+        with:
+          name: websql-portable-windows
+          path: WebSQL-Portable-Windows.zip
+          if-no-files-found: error
