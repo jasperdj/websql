@@ -35,8 +35,7 @@ export class SQLAutocompleteProvider implements languages.CompletionItemProvider
             const escapedTable = table.includes('.') ? table : `"${table}"`;
             const countResult = await duckdbService.query(`SELECT COUNT(*) FROM ${escapedTable}`);
             rowCount = countResult.rows[0]?.[0] as number || 0;
-          } catch (e) {
-            // console.warn(`Failed to get row count for ${table}:`, e);
+          } catch {
             // Try without quotes as fallback
             try {
               const countResult = await duckdbService.query(`SELECT COUNT(*) FROM ${table}`);
@@ -70,9 +69,7 @@ export class SQLAutocompleteProvider implements languages.CompletionItemProvider
 
   async provideCompletionItems(
     model: editor.ITextModel,
-    position: Position,
-    _context: languages.CompletionContext,
-    _token: any
+    position: Position
   ): Promise<languages.CompletionList> {
     const textUntilPosition = model.getValueInRange({
       startLineNumber: 1,

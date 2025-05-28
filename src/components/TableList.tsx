@@ -235,7 +235,7 @@ export function TableList({ onInspectTable, refreshTrigger }: TableListProps) {
     setEditName(tableName);
   };
 
-  const handleDelete = async (tableName: string, _type: 'table' | 'view') => {
+  const handleDelete = async (tableName: string) => {
     // Check if multiple tables are selected
     const tablesToDelete = selectedTables.has(tableName) ? Array.from(selectedTables) : [tableName];
     const deleteCount = tablesToDelete.length;
@@ -731,7 +731,7 @@ export function TableList({ onInspectTable, refreshTrigger }: TableListProps) {
           y={contextMenu.y}
           onClose={() => setContextMenu(null)}
           onRename={() => handleRename(contextMenu.tableName)}
-          onDelete={() => handleDelete(contextMenu.tableName, contextMenu.type)}
+          onDelete={() => handleDelete(contextMenu.tableName)}
           onExport={(format) => handleExport(contextMenu.tableName, format)}
           onSave={() => handleSave(contextMenu.tableName, contextMenu.type)}
           onUnsave={() => handleUnsave(contextMenu.tableName)}

@@ -1,6 +1,6 @@
 import React, { useMemo, useCallback, useState } from 'react';
 import { AgGridReact } from 'ag-grid-react';
-import type { ColDef, GridReadyEvent, GridApi, CellValueChangedEvent, CellClickedEvent } from 'ag-grid-community';
+import type { ColDef, GridReadyEvent, GridApi, CellValueChangedEvent, CellClickedEvent, CellClassParams } from 'ag-grid-community';
 import { Download } from 'lucide-react';
 import type { QueryResult } from '@/lib/duckdb';
 import { duckdbService } from '@/lib/duckdb';
@@ -69,7 +69,7 @@ export function TableViewer({ result, query }: TableViewerProps) {
         }
         return String(params.value);
       },
-      cellClass: (params: any) => {
+      cellClass: (params: CellClassParams) => {
         const classes = [];
         if (params.value === null || params.value === undefined) {
           classes.push('text-gray-400');
@@ -248,9 +248,9 @@ export function TableViewer({ result, query }: TableViewerProps) {
     if (editableInfo.isEditable && gridApi) {
       const gridDiv = document.querySelector('.ag-theme-quartz');
       if (gridDiv) {
-        gridDiv.addEventListener('paste', handlePaste as any);
+        gridDiv.addEventListener('paste', handlePaste);
         return () => {
-          gridDiv.removeEventListener('paste', handlePaste as any);
+          gridDiv.removeEventListener('paste', handlePaste);
         };
       }
     }

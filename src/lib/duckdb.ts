@@ -370,7 +370,7 @@ class DuckDBService {
     }
   }
 
-  async exportTableAsXLSX(tableName: string): Promise<{ columns: string[], rows: any[][] }> {
+  async exportTableAsXLSX(tableName: string): Promise<{ columns: string[], rows: unknown[][] }> {
     try {
       const result = await this.query(`SELECT * FROM ${tableName}`);
       return {

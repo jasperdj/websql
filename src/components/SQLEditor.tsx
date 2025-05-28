@@ -21,7 +21,7 @@ export function SQLEditor({ query, onChange, onQueryResult, tabTitle, savedQuery
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const autocompleteProviderRef = useRef<SQLAutocompleteProvider | null>(null);
-  const monacoRef = useRef<any>(null);
+  const monacoRef = useRef<editor.IStandaloneCodeEditor | null>(null);
 
   const executeQuery = useCallback(async () => {
     if (!query.trim()) return;

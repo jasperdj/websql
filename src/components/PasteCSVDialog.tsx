@@ -72,7 +72,7 @@ export function PasteCSVDialog({ isOpen, onClose, onImportComplete }: PasteCSVDi
       
       setPreview({ headers, rows });
       setError(null);
-    } catch (err) {
+    } catch {
       setError('Failed to parse CSV');
       setPreview({ headers: [], rows: [] });
     }

@@ -54,7 +54,7 @@ SELECT * FROM low_stock;
 `);
 
 async function testSQLFeatures() {
-    
+  try {
     // Create test data
     console.log('Creating test data...');
     await duckdbService.query(`
