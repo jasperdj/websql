@@ -30,10 +30,12 @@ jobs:
         
       - name: Build Tauri app (Windows)
         run: |
+          echo "Building Rust backend..."
           cd src-tauri
-          cargo build --release
+          cargo build --release --verbose
           cd ..
-          npx tauri build
+          echo "Building Tauri app..."
+          npx tauri build --verbose
         
       - name: List build outputs
         run: |

@@ -2,10 +2,10 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
 
-// Optimized config for Tauri development
+// Vite config for Tauri builds (no base path)
 export default defineConfig({
   plugins: [react()],
-  base: '/websql/',
+  base: '/', // Root path for Tauri
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
@@ -14,23 +14,4 @@ export default defineConfig({
   optimizeDeps: {
     exclude: ['@duckdb/duckdb-wasm'],
   },
-  server: {
-    // Faster HMR
-    hmr: {
-      overlay: false
-    },
-    // Pre-transform heavy dependencies
-    warmup: {
-      clientFiles: [
-        './src/main.tsx',
-        './src/App.tsx',
-        './src/lib/duckdb.ts'
-      ]
-    }
-  },
-  build: {
-    // Use esbuild for faster builds
-    minify: 'esbuild',
-    target: 'esnext'
-  }
 })

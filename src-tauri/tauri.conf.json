@@ -6,7 +6,7 @@
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:5173/websql/",
-    "beforeBuildCommand": "npm run build",
+    "beforeBuildCommand": "vite build --config vite.config.tauri.ts",
     "frontendDist": "../dist"
   },
   "app": {
