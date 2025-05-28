@@ -41,7 +41,7 @@ jobs:
       - name: Copy executable
         run: |
           mkdir -p dist\windows-portable
-          copy src-tauri\target\release\websql.exe dist\windows-portable\WebSQL.exe
+          copy src-tauri\target\release\websql-data-compare.exe dist\windows-portable\WebSQL.exe
           
       - name: Upload portable executable
         uses: actions/upload-artifact@v4
