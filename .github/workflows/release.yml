@@ -128,12 +128,21 @@ jobs:
               Write-Host "Extracting installer contents..."
               & $7zipPath x -o"temp_extract" $installer.FullName -y
               
+              Write-Host "=== Extraction complete, analyzing contents ==="
+              Get-ChildItem -Path "temp_extract" -Recurse | ForEach-Object {
+                if ($_.PSIsContainer) {
+                  Write-Host "DIR:  $($_.FullName)"
+                } else {
+                  Write-Host "FILE: $($_.FullName) ($([math]::Round($_.Length / 1KB, 2)) KB)"
+                }
+              }
+              
               # Find the main executable in extracted files
               $mainExe = Get-ChildItem -Path "temp_extract" -Filter "*.exe" -Recurse | 
                          Where-Object { 
-                           $_.Name -match "websql|WebSQL" -and 
+                           $_.Name -match "websql|WebSQL|web-sql" -and 
                            $_.Name -notmatch "setup|installer|uninstall" -and
-                           $_.Length -gt 1MB
+                           $_.Length -gt 500KB
                          } | 
                          Sort-Object Length -Descending | 
                          Select-Object -First 1
@@ -143,12 +152,23 @@ jobs:
                 Copy-Item $mainExe.FullName "portable/WebSQL-Portable.exe"
                 Write-Host "Created portable executable: portable/WebSQL-Portable.exe ($([math]::Round($mainExe.Length / 1MB, 2)) MB)"
                 
-                # Copy all files from the same directory (likely contains required DLLs)
-                $exeDir = $mainExe.Directory
-                Get-ChildItem -Path $exeDir -File | ForEach-Object {
+                # Find the installation directory (usually contains all app files)
+                $appDir = $mainExe.Directory
+                Write-Host "App directory: $($appDir.FullName)"
+                
+                # Copy all files from the app directory and subdirectories
+                Get-ChildItem -Path $appDir -Recurse -File | ForEach-Object {
                   if ($_.Name -ne $mainExe.Name) {
-                    Copy-Item $_.FullName "portable/"
-                    Write-Host "Copied: $($_.Name)"
+                    $relativePath = $_.FullName.Substring($appDir.FullName.Length + 1)
+                    $targetPath = Join-Path "portable" $relativePath
+                    $targetDir = Split-Path $targetPath -Parent
+                    
+                    if (!(Test-Path $targetDir)) {
+                      New-Item -ItemType Directory -Force -Path $targetDir | Out-Null
+                    }
+                    
+                    Copy-Item $_.FullName $targetPath
+                    Write-Host "Copied: $relativePath"
                   }
                 }
                 
@@ -156,6 +176,7 @@ jobs:
                 Remove-Item -Path "temp_extract" -Recurse -Force
               } else {
                 Write-Host "Warning: Could not find main executable in installer"
+                Write-Host "=== Available executables ==="
                 Get-ChildItem -Path "temp_extract" -Filter "*.exe" -Recurse | ForEach-Object {
                   Write-Host "Found exe: $($_.FullName) ($([math]::Round($_.Length / 1KB, 2)) KB)"
                 }
