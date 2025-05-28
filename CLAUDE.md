@@ -62,9 +62,17 @@ npm run test        # Run tests
 npm run lint        # Run linter
 npm run typecheck   # Run TypeScript type checking
 
+# IMPORTANT: Always run before committing
+npm run lint && npm run typecheck
+
 # Visual Testing (Optional - use when UI changes need verification)
 node scripts/screenshot.js         # Take UI screenshot with Puppeteer
 node scripts/virtual-screenshot.js # Text-based UI verification (ARM64 fallback)
+
+# CRITICAL: After EVERY git push
+gh run list --workflow=deploy.yml --limit=1  # Check deployment
+gh run list --workflow=ci.yml --limit=1      # Check CI
+gh run watch <run-id>                        # Monitor until complete
 ```
 
 ### 6. Task Management
@@ -166,7 +174,15 @@ Puppeteer may fail on ARM64/aarch64 systems due to architecture incompatibility 
 ## Memories
 - Always echo -e "\a" as the LAST SEPARATE command before finishing a task (cannot be appended with &). This ensures the audio alert is played after task completion.
 - Do not mention Claude in git commits or anywhere in the source code
-- Always check github deployment status after commiting/pushing which would trigger a deployment and fix any issues with the deployment
-- When github deployment hsa been triggered and is running then continue triggering sleep until the deployment job is finished and then check the result
+
+## CRITICAL: GitHub Deployment Monitoring
+**ALWAYS check deployment status after pushing commits!**
+
+After EVERY `git push`:
+1. Run `gh run list --workflow=deploy.yml --limit=1` to check deployment status
+2. Monitor with `gh run watch <run-id>` until completion
+3. If deployment fails, investigate and fix immediately
+4. Also check CI status with `gh run list --workflow=ci.yml --limit=1`
+5. Continue monitoring until all workflows complete
 - Never assume CI/gitlab actions will pass, always check it
 - Always lint and typecheck locally before commiting/pushing
