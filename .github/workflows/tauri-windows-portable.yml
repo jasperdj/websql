@@ -1,0 +1,51 @@
+name: Build Portable Windows Executable
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-portable-windows:
+    runs-on: windows-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Build frontend
+        run: npm run build
+        
+      - name: Build Tauri app (no bundle)
+        run: |
+          cd src-tauri
+          cargo build --release
+          
+      - name: Copy executable
+        run: |
+          mkdir -p dist\windows-portable
+          copy src-tauri\target\release\websql.exe dist\windows-portable\WebSQL.exe
+          
+      - name: Upload portable executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-portable
+          path: dist/windows-portable/WebSQL.exe
+          if-no-files-found: error
