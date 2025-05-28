@@ -29,6 +29,7 @@ jobs:
           cache-all-crates: true
           cache-on-failure: true
           shared-key: "windows-tauri"
+          key: "windows-build"
           
       - name: Install dependencies
         run: npm ci
