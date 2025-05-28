@@ -1,10 +1,11 @@
 interface TableMetadata {
   tableName: string;
-  origin: 'file' | 'paste' | 'sql' | 'unknown';
+  origin: 'file' | 'paste' | 'sql' | 'combined' | 'unknown';
   originalFilename?: string;
   originalDelimiter?: string;
   createdAt: number;
   rowCount?: number;
+  combinedFileStructures?: Record<string, string[]>; // filename -> columns mapping
 }
 
 class TableMetadataService {

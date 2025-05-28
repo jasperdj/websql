@@ -1,0 +1,230 @@
+name: Release WebSQL
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., v1.0.0)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  build-web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Build web app
+        run: npm run build
+      
+      - name: Upload web build
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-build
+          path: dist/
+
+  build-tauri:
+    needs: build-web
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: 'macos-latest'
+            args: '--target universal-apple-darwin'
+            name: 'macOS'
+            rust_targets: 'aarch64-apple-darwin,x86_64-apple-darwin'
+          - platform: 'ubuntu-22.04'
+            args: ''
+            name: 'Linux'
+            rust_targets: ''
+          - platform: 'windows-latest'
+            args: ''
+            name: 'Windows'
+            rust_targets: ''
+
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust_targets }}
+
+      - name: Install dependencies (Ubuntu)
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libwebkit2gtk-4.0-dev \
+            build-essential \
+            curl \
+            wget \
+            file \
+            libxdo-dev \
+            libssl-dev \
+            libgtk-3-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            libsoup-3.0-dev \
+            libjavascriptcoregtk-4.1-dev
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Build Tauri app
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ github.event.inputs.version || github.ref_name }}
+          releaseName: 'WebSQL ${{ github.event.inputs.version || github.ref_name }}'
+          releaseBody: |
+            # WebSQL Data Compare Tool
+            
+            A powerful browser-based tool for comparing data across different sources using SQL queries.
+            
+            ## 📦 Downloads
+            
+            ### Desktop Apps (Recommended)
+            - **Windows**: `WebSQL_x64_en-US.msi` (installer) or `WebSQL_x64-setup.exe`
+            - **macOS**: `WebSQL_universal.dmg` (works on both Intel and Apple Silicon Macs)
+            - **Linux**: 
+              - `WebSQL_amd64.AppImage` (works on most distributions)
+              - `WebSQL_amd64.deb` (Debian/Ubuntu)
+            
+            ### Web Version
+            - 🌐 [Use WebSQL Online](https://jasperdj.github.io/websql/)
+            
+            ## ✨ What's New
+            - Tauri-based desktop app (10MB download, 50MB RAM usage)
+            - Native performance with system WebView
+            - Cross-platform support (Windows, macOS, Linux)
+            - All your data stays local - no cloud uploads
+            
+            ## 🚀 Features
+            - Import CSV, Parquet files
+            - Write SQL queries with syntax highlighting
+            - Export results to CSV
+            - Save queries and projects
+            - Combine multiple files
+            - Persistent tables using OPFS
+            - Fast DuckDB WASM engine
+            
+            ## 📝 Changelog
+            See [CHANGELOG.md](https://github.com/jasperdj/websql/blob/main/CHANGELOG.md)
+            
+            ---
+            *First time using WebSQL? Check out our [Quick Start Guide](https://github.com/jasperdj/websql#quick-start)*
+          releaseDraft: false
+          prerelease: false
+          args: ${{ matrix.args }}
+
+      - name: Upload Tauri artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: tauri-${{ matrix.name }}
+          path: |
+            src-tauri/target/release/bundle/
+            src-tauri/target/universal-apple-darwin/release/bundle/
+
+  create-release-page:
+    needs: [build-web, build-tauri]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Download web build
+        uses: actions/download-artifact@v4
+        with:
+          name: web-build
+          path: dist/
+      
+      - name: Create download page
+        run: |
+          cat > dist/download.html << 'EOF'
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Download WebSQL</title>
+            <style>
+              body { font-family: system-ui; max-width: 800px; margin: 0 auto; padding: 2rem; }
+              .download-section { margin: 2rem 0; }
+              .platform { background: #f5f5f5; padding: 1.5rem; border-radius: 8px; margin: 1rem 0; }
+              .platform h3 { margin-top: 0; }
+              .download-btn { 
+                display: inline-block; 
+                padding: 0.75rem 1.5rem; 
+                background: #2563eb; 
+                color: white; 
+                text-decoration: none; 
+                border-radius: 6px; 
+                margin: 0.5rem 0.5rem 0.5rem 0;
+              }
+              .download-btn:hover { background: #1d4ed8; }
+            </style>
+          </head>
+          <body>
+            <h1>Download WebSQL</h1>
+            <p>Choose the version for your operating system:</p>
+            
+            <div class="platform">
+              <h3>🪟 Windows</h3>
+              <a href="https://github.com/jasperdj/websql/releases/latest/download/WebSQL_x64_en-US.msi" class="download-btn">Download MSI Installer</a>
+              <a href="https://github.com/jasperdj/websql/releases/latest/download/WebSQL_x64-setup.exe" class="download-btn">Download EXE Installer</a>
+            </div>
+            
+            <div class="platform">
+              <h3>🍎 macOS</h3>
+              <a href="https://github.com/jasperdj/websql/releases/latest/download/WebSQL_universal.dmg" class="download-btn">Download Universal DMG</a>
+              <p><small>Works on both Intel and Apple Silicon Macs</small></p>
+            </div>
+            
+            <div class="platform">
+              <h3>🐧 Linux</h3>
+              <a href="https://github.com/jasperdj/websql/releases/latest/download/WebSQL_amd64.AppImage" class="download-btn">Download AppImage</a>
+              <a href="https://github.com/jasperdj/websql/releases/latest/download/WebSQL_amd64.deb" class="download-btn">Download DEB</a>
+            </div>
+            
+            <div class="platform">
+              <h3>🌐 Web Version</h3>
+              <a href="/websql/" class="download-btn">Use WebSQL Online</a>
+              <p><small>No installation required - runs in your browser</small></p>
+            </div>
+            
+            <hr style="margin: 3rem 0;">
+            <p><a href="https://github.com/jasperdj/websql/releases">View all releases</a></p>
+          </body>
+          </html>
+          EOF
+      
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
+          keep_files: true

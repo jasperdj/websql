@@ -31,6 +31,7 @@ export function ContextMenu({
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        event.stopPropagation();
         onClose();
       }
     };
@@ -41,11 +42,15 @@ export function ContextMenu({
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    document.addEventListener('keydown', handleEscape);
+    // Use a small delay to ensure the menu is rendered before adding listeners
+    const timeoutId = setTimeout(() => {
+      document.addEventListener('click', handleClickOutside);
+      document.addEventListener('keydown', handleEscape);
+    }, 10);
 
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      clearTimeout(timeoutId);
+      document.removeEventListener('click', handleClickOutside);
       document.removeEventListener('keydown', handleEscape);
     };
   }, [onClose]);
@@ -63,6 +68,7 @@ export function ContextMenu({
   return (
     <div
       ref={menuRef}
+      data-context-menu
       className="fixed z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg py-1 min-w-[140px]"
       style={{ left: x, top: y }}
     >

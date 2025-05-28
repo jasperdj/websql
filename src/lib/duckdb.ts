@@ -63,17 +63,49 @@ class DuckDBService {
     }
 
     try {
-      const result = await this.conn!.query(sql);
-      const columns = result.schema.fields.map(f => f.name);
-      const rows = result.toArray().map(row => {
-        return columns.map(col => row[col]);
-      });
-
-      return {
-        columns,
-        rows,
-        rowCount: rows.length,
+      // Split SQL into individual statements (simple approach)
+      // DuckDB doesn't support multiple statements in one query() call
+      const statements = sql
+        .split(';')
+        .map(s => s.trim())
+        .filter(s => s.length > 0);
+      
+      let lastResult: QueryResult = {
+        columns: [],
+        rows: [],
+        rowCount: 0,
       };
+
+      // Execute each statement sequentially
+      for (const statement of statements) {
+        try {
+          const result = await this.conn!.query(statement);
+          const columns = result.schema.fields.map(f => f.name);
+          const rows = result.toArray().map(row => {
+            return columns.map(col => row[col]);
+          });
+
+          // Only update lastResult if this statement returns data
+          // (CREATE VIEW, INSERT, etc. might not return rows)
+          if (columns.length > 0 || rows.length > 0) {
+            lastResult = {
+              columns,
+              rows,
+              rowCount: rows.length,
+            };
+          }
+        } catch (error) {
+          // If any statement fails, return error immediately
+          return {
+            columns: [],
+            rows: [],
+            rowCount: 0,
+            error: error instanceof Error ? error.message : String(error),
+          };
+        }
+      }
+
+      return lastResult;
     } catch (error) {
       return {
         columns: [],

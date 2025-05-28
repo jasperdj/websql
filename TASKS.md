@@ -2,85 +2,104 @@
 
 ## Current Tasks
 
-### UI/UX Improvements - Priority
-- [x] Upgrade Table Viewer with Advanced Grid Library
-  - Research and integrate a robust table library (ag-Grid, TanStack Table, or similar) ✓
-  - Add grid lines for better visual separation ✓
-  - Implement column width resizing (basic support)
-  - Add pagination controls for large datasets ✓
-  - Support virtualized scrolling ✓
-  - Add column sorting and filtering ✓
+### Phase 1: Electron App Foundation ✅
+- [x] Set up Electron build pipeline
+  - [x] Configure electron-builder with TypeScript
+  - [x] Add main process with IPC handlers
+  - [x] Set up preload script with contextBridge for security
+  - [x] Implement capability detection (web vs electron)
+  - [ ] Create auto-updater configuration using GitHub releases
   
-- [x] Enhance Table List Component
-  - Add expand/collapse functionality for table columns ✓
-  - Show column names and data types ✓
-  - Add table row count indicators ✓
-  
-- [x] Add Table Preview Feature
-  - Quick preview button/icon for each table ✓
-  - Show first 10-20 rows in a modal/popover ✓
-  - Display table statistics (row count, size) ✓
-  
-- [ ] UI Visual Improvements
-  - Refine color scheme and spacing
-  - Add subtle animations and transitions
-  - Improve button and input styling
-  - Add loading skeletons for better UX
-  - Enhance dark mode support
+- [x] GitHub Actions CI/CD
+  - [x] Configure dual build workflow (web + electron)
+  - [x] Web build → GitHub Pages
+  - [x] Electron builds → GitHub Releases (Win/Mac/Linux)
+  - [ ] Auto-generate download links in web app
+  - [ ] Version synchronization between builds
 
-### Data Import & Processing
-- [ ] CSV parser implementation
-  - Auto-detect delimiters and headers
-  - Handle different encodings
-  - Progress tracking for large files
+### Phase 2: External Data Sources (Electron Only)
+- [ ] Local File System Integration
+  - Add "Local Folder" option in Import section
+  - Implement directory picker dialog
+  - File watcher for auto-reload on external changes
+  - Write-back on save with file locking
+  - Show file icon (📄) in table list
   
-- [ ] Set up OPFS persistence layer
-  - Create OPFS utilities
-  - Test file storage/retrieval
-  - Handle browser compatibility
+- [ ] SFTP/SSH Integration
+  - Add "SFTP Server" option in Import section
+  - Connection config UI (host, port, auth)
+  - Remote file browser dialog
+  - Secure credential storage using electron-store
+  - Write-back support with conflict detection
+  - Show remote icon (🌐) in table list
+  
+- [ ] PostgreSQL Integration  
+  - Add "Database" option in Import section
+  - Connection string management UI
+  - Schema/table browser dialog
+  - Live table import as external tables
+  - Transaction support for write-back
+  - Show database icon (🗄️) in table list
+
+### Phase 3: UI Enhancements for External Sources
+- [ ] Update Import Section
+  - Rename "Import Files" → "Import"
+  - Add connection type selector (Files/Local/SFTP/Database)
+  - Connection manager with saved configs
+  - Recent connections quick access
+  
+- [ ] Table List Updates for External Sources
+  - Add source type icons
+  - Show sync status indicators
+  - Add "Refresh" for external tables
+  - Visual feedback for unsaved changes
+  - Right-click → "Open in source" option
+
+### Phase 4: Write-Back & Sync Features
+- [ ] Implement save triggers
+  - Manual save command (Ctrl+S in results)
+  - Auto-save after DML operations
+  - Configurable auto-save with debounce
+  - Save status in status bar
+  
+- [ ] Conflict Resolution
+  - Detect external file/DB changes
+  - Three-way merge UI for conflicts
+  - Backup before overwrite option
+  - Change history tracking
 
 ## Backlog
 
-### Next Priority - Data Import & SQL Features
-- [ ] Parquet file support
-- [ ] XLSX parser with sheet selection
-- [ ] SQL query history with localStorage
-- [ ] Project management (save/load configurations)
-- [ ] Canonical view definitions
+### Core Features Already Implemented
+- [x] CSV/Parquet import and export
+- [x] Multi-tab SQL editor
+- [x] SQL query saving and project management
+- [x] Combine files functionality
+- [x] Table persistence across sessions
+- [x] Context menus and keyboard shortcuts
+- [x] Dark mode support
 
-### Comparison Features (Core MVP)
-- [ ] Diff query builder UI
-- [ ] Side-by-side comparison view
-- [ ] Diff highlighting (added/removed/changed rows)
-- [ ] Export diff results
-- [ ] Diff statistics summary
-
-### Performance & Advanced Features
-- [ ] Web Worker for SQL execution
-- [ ] Streaming parser for large files
-- [ ] Column name auto-completion
+### Nice-to-Have Enhancements
+- [ ] XLSX export functionality (currently shows "not implemented")
+- [ ] JSON export option
+- [ ] Row-level color coding based on SQL conditions
 - [ ] SQL formatting/beautify
-- [ ] Keyboard shortcuts (beyond Ctrl+Enter)
-- [ ] Multi-tab SQL editor
+- [ ] More keyboard shortcuts
+- [ ] Column statistics in results
 
-### Export & Sharing
-- [ ] CSV export with filters
-- [ ] JSON export
-- [ ] Copy to clipboard functionality
-- [ ] Shareable comparison links
+### Future Electron Enhancements
+- [ ] More database support (MySQL, SQLite, SQL Server)
+- [ ] Cloud storage integration (S3, Azure Blob, GCS)
+- [ ] REST API as data source
+- [ ] Scheduled sync/refresh for external tables
+- [ ] Data lineage visualization
+- [ ] SSH tunnel support for databases
 
 ### Testing & Quality
 - [ ] Unit test setup (Vitest)
-- [ ] DuckDB integration tests
-- [ ] Component testing
-- [ ] E2E test scenarios
-
-## Future Ideas
-- Multiple database connection support
-- Data visualization charts
-- Query templates library
-- VS Code extension
-- API for automation
+- [ ] Integration tests for external sources
+- [ ] E2E tests for both web and electron
+- [ ] Security audit for electron IPC
 
 ## Completed Tasks Archive
 ### Setup & Foundation

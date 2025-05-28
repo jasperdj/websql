@@ -74,4 +74,7 @@ out/
 # Puppeteer
 .puppeteerrc.cjs
 chrome-linux/
-.local-chromium/ 
+.local-chromium/
+
+# Tauri
+src-tauri/target/ 

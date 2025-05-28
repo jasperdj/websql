@@ -151,18 +151,29 @@ export function TableList({ onInspectTable, refreshTrigger }: TableListProps) {
     }
   }, [refreshTrigger]);
 
-  // Handle clicks outside bulk export menu
+  // Handle clicks outside bulk export menu and table selection
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (bulkExportRef.current && !bulkExportRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      
+      // Handle bulk export menu
+      if (bulkExportRef.current && !bulkExportRef.current.contains(target)) {
         setShowBulkExport(false);
+      }
+      
+      // Handle table selection - clear if clicking outside the table list
+      const tableListElement = document.querySelector('[data-table-list]');
+      if (tableListElement && !tableListElement.contains(target)) {
+        // Also check if clicking on context menu
+        const contextMenuElement = document.querySelector('[data-context-menu]');
+        if (!contextMenuElement || !contextMenuElement.contains(target)) {
+          setSelectedTables(new Set());
+        }
       }
     };
 
-    if (showBulkExport) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
-    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showBulkExport]);
 
   const handleContextMenu = (e: React.MouseEvent, tableName: string, type: 'table' | 'view') => {
@@ -271,7 +282,50 @@ export function TableList({ onInspectTable, refreshTrigger }: TableListProps) {
         // Handle original format export
         if (format === 'original') {
           const metadata = tableMetadataService.get(tableToExport);
-          if (!metadata || !metadata.originalFilename) {
+          
+          // Check if this is a combined table
+          if (metadata?.origin === 'combined' && metadata.combinedFileStructures) {
+            // Export each original file separately
+            for (const [originalFilename, originalColumns] of Object.entries(metadata.combinedFileStructures)) {
+              // Get the delimiter from the filename (default to comma)
+              const delimiter = originalFilename.endsWith('.csv') ? ',' : ',';
+              
+              // Build query to select only rows from this file with original columns
+              const columnList = originalColumns.join(', ');
+              const query = `
+                SELECT ${columnList} 
+                FROM ${tableToExport} 
+                WHERE source_filename = '${originalFilename}'
+              `;
+              
+              const result = await duckdbService.query(query);
+              
+              // Convert result to CSV
+              let csv = result.columns.join(delimiter) + '\n';
+              result.rows.forEach(row => {
+                csv += row.map(cell => {
+                  // Handle null values and quotes
+                  if (cell === null || cell === undefined) return '';
+                  const str = String(cell);
+                  if (str.includes(delimiter) || str.includes('"') || str.includes('\n')) {
+                    return `"${str.replace(/"/g, '""')}"`;
+                  }
+                  return str;
+                }).join(delimiter) + '\n';
+              });
+              
+              // Download file
+              const blob = new Blob([csv], { type: 'text/csv' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = originalFilename;
+              a.click();
+              URL.revokeObjectURL(url);
+            }
+            // Skip the rest of the loop for combined tables
+            continue;
+          } else if (!metadata || !metadata.originalFilename) {
             // Fall back to CSV if no original format
             const csv = await duckdbService.exportTableAsCSV(tableToExport, ',');
             blob = new Blob([csv], { type: 'text/csv' });
@@ -513,19 +567,7 @@ export function TableList({ onInspectTable, refreshTrigger }: TableListProps) {
                 No tables yet. Import some files to get started.
               </p>
             ) : (
-              <>
-                {selectedTables.size > 0 && (
-                  <div className="flex items-center justify-between text-xs text-blue-600 dark:text-blue-400 mb-2">
-                    <span>{selectedTables.size} table{selectedTables.size > 1 ? 's' : ''} selected</span>
-                    <button
-                      onClick={() => setSelectedTables(new Set())}
-                      className="hover:text-blue-800 dark:hover:text-blue-300"
-                    >
-                      Clear selection
-                    </button>
-                  </div>
-                )}
-                <div className="space-y-1">
+              <div className="space-y-1" data-table-list>
                 {tables.map((table) => {
                   const isTableExpanded = expandedTables.has(table.name);
                   const isLoadingInfo = loadingTables.has(table.name);
@@ -677,8 +719,7 @@ export function TableList({ onInspectTable, refreshTrigger }: TableListProps) {
                     </div>
                   );
                 })}
-                </div>
-              </>
+              </div>
             )}
           </>
         )}
