@@ -8,8 +8,11 @@ import { TabManager } from '@/components/TabManager';
 import { SavedQueries } from '@/components/SavedQueries';
 import { UpdateChecker } from '@/components/UpdateChecker';
 import { DownloadLinks } from '@/components/DownloadLinks';
+import { DataSourceModal } from '@/components/DataSourceModal';
+import { DataSourceList } from '@/components/DataSourceList';
 import type { QueryResult } from '@/lib/duckdb';
 import type { Tab } from '@/types/tabs';
+import type { FileNode } from '@/types/dataSource';
 import { duckdbService } from '@/lib/duckdb';
 import { savedQueriesService, type SavedQuery } from '@/lib/savedQueries';
 import { Database, Loader2 } from 'lucide-react';
@@ -18,6 +21,7 @@ import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 function AppContent() {
   const { isInitialized, error } = useDuckDB();
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [showDataSourceModal, setShowDataSourceModal] = useState(false);
   const [tabs, setTabs] = useState<Tab[]>([
     {
       id: '1',
@@ -171,6 +175,80 @@ function AppContent() {
     setRefreshTrigger(Date.now());
   }, []);
 
+  const handleFileOpen = useCallback(async (dataSourceId: string, file: FileNode) => {
+    if (!file.path) return;
+    
+    const fileName = file.name;
+    let newTab: Tab;
+    
+    if (file.fileType === 'columnar') {
+      // For columnar files, import to DuckDB and open as table
+      const tableName = `ds_${dataSourceId}_${fileName.replace(/\.[^/.]+$/, '').replace(/[^a-zA-Z0-9_]/g, '_')}`;
+      
+      try {
+        // TODO: Implement actual file reading from data source
+        // For now, we'll simulate this
+        console.log(`Would import ${file.path} as ${tableName}`);
+        
+        newTab = {
+          id: Date.now().toString(),
+          title: `${fileName} (synced)`,
+          query: `-- Synced from: ${file.path}\nSELECT * FROM ${tableName} LIMIT 100;`,
+          isDirty: false,
+          isActive: true,
+          createdAt: Date.now(),
+        };
+      } catch (error) {
+        console.error('Failed to import file:', error);
+        return;
+      }
+    } else if (file.fileType === 'sql') {
+      // For SQL files, open in editor
+      newTab = {
+        id: Date.now().toString(),
+        title: fileName,
+        query: `-- Loading from: ${file.path}\n-- Content will be loaded here`,
+        isDirty: false,
+        isActive: true,
+        createdAt: Date.now(),
+      };
+    } else if (file.fileType === 'text') {
+      // For text files, open in text editor
+      newTab = {
+        id: Date.now().toString(),
+        title: fileName,
+        query: `-- Text file: ${file.path}\n-- Content will be loaded here`,
+        isDirty: false,
+        isActive: true,
+        createdAt: Date.now(),
+      };
+    } else {
+      // Unsupported file type
+      alert(`Cannot open file type: ${file.fileType}`);
+      return;
+    }
+    
+    setTabs((prevTabs) => [
+      ...prevTabs.map((tab) => ({ ...tab, isActive: false })),
+      newTab,
+    ]);
+    setActiveTabId(newTab.id);
+    
+    // For columnar files, auto-execute the query
+    if (file.fileType === 'columnar') {
+      try {
+        const tableName = `ds_${dataSourceId}_${fileName.replace(/\.[^/.]+$/, '').replace(/[^a-zA-Z0-9_]/g, '_')}`;
+        const result = await duckdbService.query(`SELECT * FROM ${tableName} LIMIT 100`);
+        setQueryResults((prev) => ({
+          ...prev,
+          [newTab.id]: result,
+        }));
+      } catch (err) {
+        console.error('Failed to execute query:', err);
+      }
+    }
+  }, []);
+
   const handleSaveQuery = useCallback((savedQueryId: string) => {
     if (!activeTab) return;
     
@@ -243,8 +321,12 @@ function AppContent() {
         <PanelGroup direction="horizontal" className="h-full">
           <Panel defaultSize={25} minSize={15} maxSize={40}>
             <div className="h-full bg-white dark:bg-gray-800 p-6 flex flex-col">
-              <FileImport onImportComplete={handleImportComplete} />
+              <FileImport 
+                onImportComplete={handleImportComplete} 
+                onImportDataSource={() => setShowDataSourceModal(true)}
+              />
               <div className="flex-1 overflow-y-auto">
+                <DataSourceList onFileOpen={handleFileOpen} />
                 <TableList onInspectTable={handleInspectTable} refreshTrigger={refreshTrigger} />
                 <SavedQueries onLoadQuery={handleLoadSavedQuery} />
               </div>
@@ -298,6 +380,14 @@ function AppContent() {
       </main>
       <UpdateChecker />
       <DownloadLinks />
+      <DataSourceModal 
+        isOpen={showDataSourceModal}
+        onClose={() => setShowDataSourceModal(false)}
+        onDataSourceAdded={() => {
+          // TODO: Handle data source addition
+          setRefreshTrigger(prev => prev + 1);
+        }}
+      />
     </div>
   );
 }

@@ -500,7 +500,7 @@ export function TableList({ onInspectTable, refreshTrigger }: TableListProps) {
           className="flex items-center justify-between w-full text-sm font-medium text-gray-900 dark:text-white mb-2 hover:text-gray-700 dark:hover:text-gray-300"
           title="Ctrl+Click to multi-select, Shift+Click to select range"
         >
-          <span>Tables/Views ({tables.length})</span>
+          <span>Local database ({tables.length})</span>
           {isExpanded ? (
             <ChevronDown className="h-4 w-4" />
           ) : (

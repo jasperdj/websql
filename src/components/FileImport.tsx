@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { Upload } from 'lucide-react';
+import { Upload, Database } from 'lucide-react';
 import { duckdbService } from '@/lib/duckdb';
 import { cn } from '@/utils/cn';
 import { PasteCSVDialog } from './PasteCSVDialog';
@@ -7,9 +7,10 @@ import { tableMetadataService } from '@/lib/tableMetadata';
 
 interface FileImportProps {
   onImportComplete?: () => void;
+  onImportDataSource?: () => void;
 }
 
-export function FileImport({ onImportComplete }: FileImportProps) {
+export function FileImport({ onImportComplete, onImportDataSource }: FileImportProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [lastError, setLastError] = useState<string | null>(null);
@@ -217,7 +218,7 @@ export function FileImport({ onImportComplete }: FileImportProps) {
   return (
     <div>
       <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-2">
-        Import Files
+        Import/connect
       </h3>
       <div
         onDragOver={handleDragOver}
@@ -299,6 +300,15 @@ export function FileImport({ onImportComplete }: FileImportProps) {
           onImportComplete?.();
         }}
       />
+      
+      {/* Import datasource button */}
+      <button
+        onClick={onImportDataSource}
+        className="mt-3 w-full flex items-center justify-center gap-2 px-3 py-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg text-sm text-gray-700 dark:text-gray-300 transition-colors"
+      >
+        <Database className="h-4 w-4" />
+        Import datasource
+      </button>
     </div>
   );
 }

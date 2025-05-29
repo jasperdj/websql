@@ -1,8 +1,70 @@
 # TASKS.md - WebSQL Data Compare Tool Tasks
 
-## Current Tasks
+## Current Sprint: Data Source Integration
 
-### Phase 1: Tauri App Foundation ✅
+### Phase 1: UI Refactoring
+- [ ] Rename "Tables/views" to "Local database" in TableList component
+- [ ] Rename "Import files" button to "Import/connect"
+- [ ] Add "Import datasource" option to import dropdown menu
+- [ ] Create DataSourceModal component with:
+  - Platform detection (Tauri vs web)
+  - Web variant message about desktop-only functionality
+  - Desktop variant with datasource dropdown
+
+### Phase 2: Data Source Infrastructure
+- [ ] Create DataSource types and interfaces:
+  ```typescript
+  interface DataSource {
+    id: string
+    type: 'local_directory' | 'postgres'
+    name: string
+    config: LocalDirConfig | PostgresConfig
+    status: 'connected' | 'disconnected' | 'error'
+  }
+  ```
+- [ ] Implement DataSourceManager for connection handling
+- [ ] Add localStorage/OPFS persistence for datasource configs
+- [ ] Create connection testing functionality
+
+### Phase 3: Local Directory Integration
+- [ ] Create FileTreeView component for sidebar
+  - Collapsible folder structure
+  - File type detection and icons
+  - Click handlers for different file types
+- [ ] Implement file watching using Tauri fs events
+- [ ] Create sync mechanism for columnar files:
+  - Auto-import CSV/Parquet/XLSX to DuckDB on open
+  - Watch for changes and re-import
+  - Handle write-back to original files
+- [ ] Add file type handlers:
+  - Columnar → TableViewer with sync
+  - Text files → CodeMirror editor tab
+  - SQL files → SQLEditor tab
+
+### Phase 4: PostgreSQL Integration
+- [ ] Add postgres scanner extension to DuckDB
+- [ ] Create PostgreSQL connection form
+- [ ] Implement schema browsing UI
+- [ ] Enable cross-database queries in SQL editor
+- [ ] Add connection pooling and error handling
+
+### Phase 5: Tab System Enhancement
+- [ ] Extend tab types to include:
+  - 'file_table' (synced columnar file)
+  - 'file_text' (text editor)
+  - 'file_sql' (SQL file)
+- [ ] Add file path indicator in tabs
+- [ ] Implement save/sync status indicators
+
+### Phase 6: State Management
+- [ ] Create DataSourceContext for managing connections
+- [ ] Add Redux/Zustand slice for datasource state
+- [ ] Handle connection lifecycle (connect/disconnect/reconnect)
+- [ ] Implement error boundaries for connection failures
+
+## Completed Tasks
+
+### Tauri App Foundation ✅
 - [x] Set up Tauri build pipeline
   - [x] Configure Tauri with TypeScript
   - [x] Add main process with plugin support
@@ -16,57 +78,6 @@
   - [x] Tauri builds → GitHub Releases (Win/Mac/Linux)
   - [x] Auto-generate download links in web app
   - [x] Version synchronization between builds
-
-### Phase 2: External Data Sources (Tauri Only)
-- [ ] Local File System Integration
-  - Add "Local Folder" option in Import section
-  - Implement directory picker dialog
-  - File watcher for auto-reload on external changes
-  - Write-back on save with file locking
-  - Show file icon (📄) in table list
-  
-- [ ] SFTP/SSH Integration
-  - Add "SFTP Server" option in Import section
-  - Connection config UI (host, port, auth)
-  - Remote file browser dialog
-  - Secure credential storage using electron-store
-  - Write-back support with conflict detection
-  - Show remote icon (🌐) in table list
-  
-- [ ] PostgreSQL Integration  
-  - Add "Database" option in Import section
-  - Connection string management UI
-  - Schema/table browser dialog
-  - Live table import as external tables
-  - Transaction support for write-back
-  - Show database icon (🗄️) in table list
-
-### Phase 3: UI Enhancements for External Sources
-- [ ] Update Import Section
-  - Rename "Import Files" → "Import"
-  - Add connection type selector (Files/Local/SFTP/Database)
-  - Connection manager with saved configs
-  - Recent connections quick access
-  
-- [ ] Table List Updates for External Sources
-  - Add source type icons
-  - Show sync status indicators
-  - Add "Refresh" for external tables
-  - Visual feedback for unsaved changes
-  - Right-click → "Open in source" option
-
-### Phase 4: Write-Back & Sync Features
-- [ ] Implement save triggers
-  - Manual save command (Ctrl+S in results)
-  - Auto-save after DML operations
-  - Configurable auto-save with debounce
-  - Save status in status bar
-  
-- [ ] Conflict Resolution
-  - Detect external file/DB changes
-  - Three-way merge UI for conflicts
-  - Backup before overwrite option
-  - Change history tracking
 
 ## Backlog
 
