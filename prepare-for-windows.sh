@@ -19,7 +19,6 @@ zip -r websql-for-windows.zip websql/ \
   -x "*/node_modules/*" \
   -x "*/.git/*" \
   -x "*/target/*" \
-  -x "*/dist-electron/*" \
   -x "*/release/*" \
   -x "*/.npm/*" \
   -x "*/portable-win/*"
