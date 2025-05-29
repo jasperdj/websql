@@ -63,7 +63,8 @@ jobs:
           workspaces: './src-tauri -> target'
           cache-all-crates: true
           cache-on-failure: true
-          shared-key: "linux-ci"
+          shared-key: "v1-linux-ci"
+          key: "v1-linux-ci-${{ hashFiles('**/Cargo.lock') }}"
       
       - name: Cache apt packages
         uses: actions/cache@v4
