@@ -24,4 +24,5 @@ strip = true
 panic = "abort"
 
 [features]
-default = []
+default = ["custom-protocol"]
+custom-protocol = ["tauri/custom-protocol"]
