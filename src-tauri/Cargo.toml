@@ -1,6 +1,6 @@
 [package]
 name = "websql-data-compare"
-version = "0.2.8"
+version = "0.2.9"
 description = "WebSQL Data Compare - Compare data across different sources"
 authors = ["WebSQL Team"]
 edition = "2021"
