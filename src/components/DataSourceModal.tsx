@@ -29,7 +29,28 @@ export function DataSourceModal({ isOpen, onClose, onDataSourceAdded }: DataSour
 
   if (!isOpen) return null;
 
-  const isTauri = !!window.__TAURI__;
+  // Check if we're in Tauri - check for multiple possible indicators
+  // Tauri v2 uses https://tauri.localhost on Windows and tauri://localhost on other platforms
+  const isTauriProtocol = window.location.protocol === 'tauri:' || 
+                          window.location.protocol === 'https:' && window.location.hostname === 'tauri.localhost';
+  const isTauriDev = window.location.hostname === 'localhost' && window.location.port === '1420';
+  const hasTauriGlobal = !!(window.__TAURI__ || window.__TAURI_INTERNALS__ || window.__TAURI_INVOKE__);
+  
+  // In desktop app, we should either have Tauri global OR be running from tauri:// protocol
+  const isTauri = hasTauriGlobal || isTauriProtocol || isTauriDev;
+  
+  // Debug logging
+  if (isOpen) {
+    console.log('Tauri detection:', {
+      protocol: window.location.protocol,
+      hostname: window.location.hostname,
+      port: window.location.port,
+      hasTauriGlobal,
+      isTauriProtocol,
+      isTauriDev,
+      isTauri
+    });
+  }
 
   const handleTestConnection = async () => {
     setIsTestingConnection(true);
