@@ -22,13 +22,22 @@ export function DownloadLinks() {
   useEffect(() => {
     if (window.__TAURI__) return;
 
-    fetch('https://api.github.com/repos/jjasp/websql/releases/latest')
-      .then(res => res.json())
+    fetch('https://api.github.com/repos/jasperdj/websql/releases/latest')
+      .then(res => {
+        if (!res.ok) {
+          throw new Error('Failed to fetch releases');
+        }
+        return res.json();
+      })
       .then(data => {
-        setLatestRelease(data);
+        if (data && data.assets) {
+          setLatestRelease(data);
+        }
         setLoading(false);
       })
-      .catch(() => {
+      .catch((error) => {
+        // This is expected if no releases exist yet or repository is private
+        console.log('No releases found or repository is private:', error.message);
         setLoading(false);
       });
   }, []);
@@ -50,7 +59,7 @@ export function DownloadLinks() {
     return null;
   };
 
-  if (loading || !latestRelease || window.__TAURI__) return null;
+  if (loading || !latestRelease || !latestRelease.assets || window.__TAURI__) return null;
 
   const desktopAssets = latestRelease.assets
     .map(asset => {
