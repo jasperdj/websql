@@ -109,8 +109,14 @@ class DataSourceManager {
   async testConnection(source: DataSource): Promise<{ success: boolean; message: string }> {
     try {
       if (source.type === 'local_directory') {
-        // For Tauri, we would use the fs API to check if directory exists
-        if (window.__TAURI__) {
+        // Check if we're in Tauri using multiple methods
+        const isTauriProtocol = window.location.protocol === 'tauri:' || 
+                                window.location.protocol === 'https:' && window.location.hostname === 'tauri.localhost';
+        const isTauriDev = window.location.hostname === 'localhost' && window.location.port === '1420';
+        const hasTauriGlobal = !!(window.__TAURI__ || window.__TAURI_INTERNALS__ || window.__TAURI_INVOKE__);
+        const isTauri = hasTauriGlobal || isTauriProtocol || isTauriDev;
+
+        if (isTauri) {
           // TODO: Implement actual directory check using Tauri fs API
           const config = source.config as LocalDirConfig;
           if (!config.path) {

@@ -326,24 +326,27 @@ export function DataSourceModal({ isOpen, onClose, onDataSourceAdded }: DataSour
               {/* Action buttons */}
               {selectedType && (
                 <div className="mt-6 flex gap-3 justify-end">
-                  <button
-                    onClick={handleTestConnection}
-                    disabled={!isFormValid() || isTestingConnection}
-                    className="px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                  >
-                    {isTestingConnection ? (
-                      <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600 dark:border-gray-300"></div>
-                        Testing...
-                      </>
-                    ) : (
-                      'Test Connection'
-                    )}
-                  </button>
+                  {/* Only show test connection for PostgreSQL */}
+                  {selectedType === 'postgres' && (
+                    <button
+                      onClick={handleTestConnection}
+                      disabled={!isFormValid() || isTestingConnection}
+                      className="px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                    >
+                      {isTestingConnection ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600 dark:border-gray-300"></div>
+                          Testing...
+                        </>
+                      ) : (
+                        'Test Connection'
+                      )}
+                    </button>
+                  )}
                   
                   <button
                     onClick={handleAddDataSource}
-                    disabled={!isFormValid() || !connectionTestResult?.success}
+                    disabled={!isFormValid() || (selectedType === 'postgres' && !connectionTestResult?.success)}
                     className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Add Data Source
