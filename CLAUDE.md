@@ -173,7 +173,14 @@ Puppeteer may fail on ARM64/aarch64 systems due to architecture incompatibility 
 
 ## Memories
 - Always echo -e "\a" as the LAST SEPARATE command before finishing a task (cannot be appended with &). This ensures the audio alert is played after task completion.
-- Do not mention Claude in git commits or anywhere in the source code
+
+## CRITICAL CODE AND COMMIT GUIDELINES
+- **NEVER mention "Claude" in git commits, commit messages, or anywhere in the source code**
+- **NEVER add "Generated with Claude Code" or similar AI attribution to commits**
+- **NEVER include "Co-Authored-By: Claude" in commit messages**
+- **Write all commits as if they were written by a human developer**
+- Keep commits professional and focused on the technical changes
+- Use standard conventional commit format without AI attribution
 
 ## CRITICAL: GitHub Deployment Monitoring
 **ALWAYS check deployment status after pushing commits!**
