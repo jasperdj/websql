@@ -53,8 +53,12 @@ jobs:
             rust_targets: ''
           - platform: 'windows-latest'
             args: ''
-            name: 'Windows'
+            name: 'Windows-x64'
             rust_targets: ''
+          - platform: 'windows-latest'
+            args: '--target aarch64-pc-windows-msvc'
+            name: 'Windows-ARM64'
+            rust_targets: 'aarch64-pc-windows-msvc'
 
     runs-on: ${{ matrix.platform }}
     steps:
@@ -114,12 +118,21 @@ jobs:
         shell: powershell
         run: |
           Write-Host "=== Creating Windows Portable Executable ==="
+          Write-Host "Architecture: ${{ matrix.name }}"
           
           # Create portable directory
           New-Item -ItemType Directory -Force -Path "portable"
           
+          # Determine the correct path based on target architecture
+          $searchPath = "src-tauri/target/release"
+          if ("${{ matrix.name }}" -eq "Windows-ARM64") {
+            $searchPath = "src-tauri/target/aarch64-pc-windows-msvc/release"
+          }
+          
+          Write-Host "Searching in: $searchPath"
+          
           # Find the main executable from the build output (not installer)
-          $mainExe = Get-ChildItem -Path "src-tauri/target/release" -Filter "*.exe" | 
+          $mainExe = Get-ChildItem -Path $searchPath -Filter "*.exe" -ErrorAction SilentlyContinue | 
                      Where-Object { 
                        $_.Name -notmatch "setup|installer|build|deps" -and 
                        $_.Length -gt 1MB 
@@ -130,9 +143,14 @@ jobs:
           if ($mainExe) {
             Write-Host "Found main executable: $($mainExe.FullName) ($([math]::Round($mainExe.Length / 1MB, 2)) MB)"
             
-            # Copy the main executable
-            Copy-Item $mainExe.FullName "portable/WebSQL-Portable.exe"
-            Write-Host "Created portable executable: portable/WebSQL-Portable.exe"
+            # Copy the main executable with architecture suffix
+            $portableName = "WebSQL-Portable.exe"
+            if ("${{ matrix.name }}" -eq "Windows-ARM64") {
+              $portableName = "WebSQL-Portable-ARM64.exe"
+            }
+            
+            Copy-Item $mainExe.FullName "portable/$portableName"
+            Write-Host "Created portable executable: portable/$portableName"
             
             # Copy required DLLs from the same directory
             $releaseDir = $mainExe.Directory
@@ -144,12 +162,18 @@ jobs:
             }
             
             # Create a simple README for the portable version
+            $arch = "x64"
+            if ("${{ matrix.name }}" -eq "Windows-ARM64") {
+              $arch = "ARM64"
+            }
+            
             $readmeLines = @(
-              "WebSQL Data Compare - Portable Version",
+              "WebSQL Data Compare - Portable Version ($arch)",
               "",
               "This is a portable version that doesn't require installation.",
-              "Simply run WebSQL-Portable.exe to start the application.",
+              "Simply run $portableName to start the application.",
               "",
+              "Architecture: $arch",
               "Requirements:",
               "- Windows 10/11",
               "- Microsoft Edge WebView2 Runtime (usually already installed)",
@@ -249,7 +273,8 @@ jobs:
             - **Windows**: 
               - `.msi` installer (recommended)
               - `.exe` NSIS installer  
-              - `WebSQL-Portable.exe` - No installation required
+              - `WebSQL-Portable.exe` - x64 portable version
+              - `WebSQL-Portable-ARM64.exe` - ARM64 portable version
             - **macOS**: `.dmg` installer (Universal binary)
             - **Linux**: `.AppImage` (portable) and `.deb` packages
             
