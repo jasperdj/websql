@@ -79,12 +79,28 @@ jobs:
         uses: swatinem/rust-cache@v2
         with:
           workspaces: './src-tauri -> target'
+          cache-all-crates: true
+          cache-on-failure: true
+          shared-key: "${{ matrix.platform }}-release"
+          key: "${{ matrix.name }}"
+
+      - name: Cache apt packages
+        if: matrix.platform == 'ubuntu-22.04'
+        uses: actions/cache@v4
+        with:
+          path: ~/apt-cache
+          key: ${{ runner.os }}-apt-release-${{ hashFiles('.github/workflows/release.yml') }}
+          restore-keys: |
+            ${{ runner.os }}-apt-release-
+            ${{ runner.os }}-apt-
 
       - name: Install dependencies (Ubuntu)
         if: matrix.platform == 'ubuntu-22.04'
         run: |
+          # Create apt cache directory
+          mkdir -p ~/apt-cache
           sudo apt-get update
-          sudo apt-get install -y \
+          sudo apt-get install -y -o dir::cache::archives="$HOME/apt-cache" \
             libwebkit2gtk-4.1-dev \
             libwebkit2gtk-4.0-dev \
             build-essential \

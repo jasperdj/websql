@@ -61,11 +61,25 @@ jobs:
         uses: swatinem/rust-cache@v2
         with:
           workspaces: './src-tauri -> target'
+          cache-all-crates: true
+          cache-on-failure: true
+          shared-key: "linux-ci"
+      
+      - name: Cache apt packages
+        uses: actions/cache@v4
+        with:
+          path: ~/apt-cache
+          key: ${{ runner.os }}-apt-${{ hashFiles('.github/workflows/ci.yml') }}
+          restore-keys: |
+            ${{ runner.os }}-apt-
       
       - name: Install system dependencies
         run: |
+          # Create apt cache directory
+          mkdir -p ~/apt-cache
+          # Download packages to cache if not present
           sudo apt-get update
-          sudo apt-get install -y \
+          sudo apt-get install -y -o dir::cache::archives="$HOME/apt-cache" \
             libwebkit2gtk-4.1-dev \
             build-essential \
             curl \

@@ -1,0 +1,88 @@
+name: Cache Warming
+
+on:
+  schedule:
+    # Run daily at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+jobs:
+  warm-rust-cache:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            key: linux
+          - os: windows-latest
+            key: windows
+          - os: macos-latest
+            key: macos
+    
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-pc-windows-msvc,aarch64-apple-darwin,x86_64-apple-darwin
+      
+      - name: Warm Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+          cache-all-crates: true
+          cache-on-failure: true
+          shared-key: "${{ matrix.key }}-warm"
+      
+      - name: Download dependencies
+        working-directory: src-tauri
+        run: cargo fetch
+  
+  warm-node-cache:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+      
+      - name: Download dependencies
+        run: npm ci
+  
+  warm-apt-cache:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Cache apt packages
+        uses: actions/cache@v4
+        with:
+          path: ~/apt-cache
+          key: ${{ runner.os }}-apt-warm-${{ hashFiles('.github/workflows/cache-warm.yml') }}
+          restore-keys: |
+            ${{ runner.os }}-apt-warm-
+            ${{ runner.os }}-apt-
+      
+      - name: Download apt packages
+        run: |
+          mkdir -p ~/apt-cache
+          sudo apt-get update
+          # Download only, don't install
+          sudo apt-get download -o dir::cache::archives="$HOME/apt-cache" \
+            libwebkit2gtk-4.1-dev \
+            libwebkit2gtk-4.0-dev \
+            build-essential \
+            curl \
+            wget \
+            file \
+            libxdo-dev \
+            libssl-dev \
+            libgtk-3-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            libsoup-3.0-dev \
+            libjavascriptcoregtk-4.1-dev || true
