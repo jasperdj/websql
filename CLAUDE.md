@@ -173,37 +173,22 @@ Puppeteer may fail on ARM64/aarch64 systems due to architecture incompatibility 
 
 ## Building Windows Portable Executable
 
-### From WSL/Linux:
+### Quick Build Guide:
 ```bash
-# Prerequisites (one-time setup)
-sudo apt-get install -y mingw-w64
-cargo install sccache
-export RUSTC_WRAPPER=sccache  # Already in .bashrc
+# Frontend changed? Build it first:
+npx vite build --config vite.config.tauri.ts
 
-# Build steps
-cd /home/jjasp/github/websql
-npm ci
-npm run version:sync
-npm run build
+# Then build Windows exe:
 cd src-tauri
 cargo build --release --target x86_64-pc-windows-gnu
 
-# The executable will be at:
-# src-tauri/target/x86_64-pc-windows-gnu/release/websql-data-compare.exe
+# Output: src-tauri/target/x86_64-pc-windows-gnu/release/websql-data-compare.exe
 ```
 
-### Creating Portable Package:
-```bash
-# After building, create portable package
-cd /home/jjasp/github/websql
-mkdir -p portable
-cp src-tauri/target/x86_64-pc-windows-gnu/release/websql-data-compare.exe portable/WebSQL.exe
-cp -r dist/* portable/resources/
-echo '@echo off
-cd /d "%~dp0"
-start "" "WebSQL.exe"' > portable/Launch\ WebSQL.bat
-zip -r WebSQL-Portable-Windows.zip portable/
-```
+### Build Decision Tree:
+- **Frontend only changed**: Build frontend → Build exe
+- **Rust only changed**: Build exe only
+- **Both/unsure**: Build frontend → Build exe
 
 ## Memories
 - Always echo -e "\a" as the LAST SEPARATE command before finishing a task (cannot be appended with &). This ensures the audio alert is played after task completion.
