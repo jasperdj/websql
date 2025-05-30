@@ -5,6 +5,7 @@ import { Download } from 'lucide-react';
 import type { QueryResult } from '@/lib/duckdb';
 import { duckdbService } from '@/lib/duckdb';
 import { savedTablesService } from '@/lib/savedTables';
+import { dataSourceManager } from '@/lib/dataSourceManager';
 
 interface TableViewerProps {
   result: QueryResult | null;
@@ -139,6 +140,16 @@ export function TableViewer({ result, query }: TableViewerProps) {
       const updateQuery = `UPDATE ${editableInfo.tableName} SET ${event.colDef.field} = ${newValue} WHERE ${whereConditions.join(' AND ')}`;
       
       await duckdbService.query(updateQuery);
+      
+      // Immediately sync to data source file if this is a data source table
+      if (dataSourceManager.isDataSourceTable(editableInfo.tableName)) {
+        try {
+          await dataSourceManager.syncTableToFile(editableInfo.tableName);
+        } catch (error) {
+          console.error('Failed to sync to source file:', error);
+          // Don't show an alert, just log the error - user still gets their edit
+        }
+      }
       
       // Update saved table if it exists
       const savedTable = savedTablesService.findByOriginalName(editableInfo.tableName);

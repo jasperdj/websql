@@ -126,63 +126,76 @@ export function FileTreeView({ dataSourceId, rootPath, onFileSelect }: FileTreeV
           throw new Error('File system access requires desktop app');
         }
         
-        // TODO: Implement actual directory reading using Tauri fs API
-        // For now, create a mock structure
-        const mockNode: FileNode = {
-          name: rootPath.split('/').pop() || 'Root',
-          path: rootPath,
-          type: 'directory',
-          children: [
-            {
-              name: 'data',
-              path: `${rootPath}/data`,
-              type: 'directory',
-              children: [
-                {
-                  name: 'sales_2024.csv',
-                  path: `${rootPath}/data/sales_2024.csv`,
-                  type: 'file',
-                  fileType: 'columnar',
-                  size: 1024 * 512,
-                  modifiedAt: new Date(),
-                },
-                {
-                  name: 'products.parquet',
-                  path: `${rootPath}/data/products.parquet`,
-                  type: 'file',
-                  fileType: 'columnar',
-                  size: 1024 * 256,
-                  modifiedAt: new Date(),
-                },
-              ],
-            },
-            {
-              name: 'queries',
-              path: `${rootPath}/queries`,
-              type: 'directory',
-              children: [
-                {
-                  name: 'analysis.sql',
-                  path: `${rootPath}/queries/analysis.sql`,
-                  type: 'file',
-                  fileType: 'sql',
-                  size: 2048,
-                  modifiedAt: new Date(),
-                },
-              ],
-            },
-            {
-              name: 'README.md',
-              path: `${rootPath}/README.md`,
-              type: 'file',
-              fileType: 'text',
-              size: 4096,
-              modifiedAt: new Date(),
-            },
-          ],
+        // Read actual directory using Tauri fs API
+        const { readDir } = await import('@tauri-apps/plugin-fs');
+        
+        const entries = await readDir(rootPath);
+        
+        const buildFileTree = (dirPath: string, entries: Array<{
+          name: string;
+          isDirectory: boolean;
+          size?: number;
+          modifiedAt?: string;
+        }>): FileNode => {
+          const dirName = dirPath.split('/').pop() || dirPath.split('\\').pop() || 'Root';
+          const children: FileNode[] = [];
+          
+          // Get entries for this directory
+          const dirEntries = entries.filter(entry => {
+            const entryDir = entry.name.includes('/') || entry.name.includes('\\') 
+              ? entry.name.substring(0, entry.name.lastIndexOf('/') || entry.name.lastIndexOf('\\'))
+              : '';
+            return entryDir === '' || entryDir === dirPath;
+          });
+          
+          for (const entry of dirEntries) {
+            const name = entry.name.split('/').pop() || entry.name.split('\\').pop() || 'unknown';
+            const fullPath = `${rootPath}/${entry.name}`.replace(/\\/g, '/');
+            
+            if (entry.isDirectory) {
+              // Recursively build subdirectory
+              const subdirEntries = entries.filter(e => e.name.startsWith(entry.name + '/'));
+              children.push(buildFileTree(fullPath, subdirEntries));
+            } else {
+              // Add file
+              const ext = name.split('.').pop()?.toLowerCase();
+              let fileType: FileNode['fileType'] = 'other';
+              
+              if (['csv', 'parquet', 'xlsx', 'xls'].includes(ext || '')) {
+                fileType = 'columnar';
+              } else if (ext === 'sql') {
+                fileType = 'sql';
+              } else if (['txt', 'md', 'json', 'xml', 'log'].includes(ext || '')) {
+                fileType = 'text';
+              }
+              
+              children.push({
+                name,
+                path: fullPath,
+                type: 'file',
+                fileType,
+                size: entry.size || 0,
+                modifiedAt: entry.modifiedAt ? new Date(entry.modifiedAt) : new Date(),
+              });
+            }
+          }
+          
+          return {
+            name: dirName,
+            path: dirPath,
+            type: 'directory',
+            children: children.sort((a, b) => {
+              // Directories first, then files
+              if (a.type !== b.type) {
+                return a.type === 'directory' ? -1 : 1;
+              }
+              return a.name.localeCompare(b.name);
+            }),
+          };
         };
         
-        setRootNode(mockNode);
+        const rootNode = buildFileTree(rootPath, entries);
+        setRootNode(rootNode);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load directory');
       } finally {

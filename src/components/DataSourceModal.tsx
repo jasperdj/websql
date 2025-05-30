@@ -1,17 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Folder, AlertCircle } from 'lucide-react';
 import { dataSourceManager } from '@/lib/dataSourceManager';
-import type { DataSourceType, LocalDirConfig, PostgresConfig } from '@/types/dataSource';
+import type { DataSource, DataSourceType, LocalDirConfig, PostgresConfig } from '@/types/dataSource';
 
 interface DataSourceModalProps {
   isOpen: boolean;
   onClose: () => void;
   onDataSourceAdded?: () => void;
+  editingDataSource?: DataSource | null;
 }
 
 
-export function DataSourceModal({ isOpen, onClose, onDataSourceAdded }: DataSourceModalProps) {
+export function DataSourceModal({ isOpen, onClose, onDataSourceAdded, editingDataSource }: DataSourceModalProps) {
   const [selectedType, setSelectedType] = useState<DataSourceType | null>(null);
+  const [shortName, setShortName] = useState('');
   const [localDirConfig, setLocalDirConfig] = useState<LocalDirConfig>({ 
     path: '',
     watchEnabled: true,
@@ -26,6 +28,26 @@ export function DataSourceModal({ isOpen, onClose, onDataSourceAdded }: DataSour
   });
   const [isTestingConnection, setIsTestingConnection] = useState(false);
   const [connectionTestResult, setConnectionTestResult] = useState<{ success: boolean; message: string } | null>(null);
+
+  // Initialize form when editing
+  useEffect(() => {
+    if (editingDataSource) {
+      setSelectedType(editingDataSource.type);
+      setShortName(editingDataSource.shortName);
+      if (editingDataSource.type === 'local_directory') {
+        setLocalDirConfig(editingDataSource.config as LocalDirConfig);
+      } else if (editingDataSource.type === 'postgres') {
+        setPostgresConfig(editingDataSource.config as PostgresConfig);
+      }
+    } else {
+      // Reset form for new data source
+      setSelectedType(null);
+      setShortName('');
+      setLocalDirConfig({ path: '', watchEnabled: true, syncEnabled: true });
+      setPostgresConfig({ host: 'localhost', port: 5432, database: '', username: '', password: '' });
+    }
+    setConnectionTestResult(null);
+  }, [editingDataSource, isOpen]);
 
   if (!isOpen) return null;
 
@@ -64,6 +86,7 @@ export function DataSourceModal({ isOpen, onClose, onDataSourceAdded }: DataSour
         id: 'test',
         type: selectedType,
         name: 'Test Connection',
+        shortName: shortName || 'test',
         config: selectedType === 'local_directory' ? localDirConfig : postgresConfig,
         status: 'disconnected' as const,
         createdAt: new Date(),
@@ -82,39 +105,52 @@ export function DataSourceModal({ isOpen, onClose, onDataSourceAdded }: DataSour
     }
   };
 
-  const handleAddDataSource = async () => {
+  const handleSaveDataSource = async () => {
     if (!selectedType) return;
     
     try {
-      const name = selectedType === 'local_directory' 
-        ? `Local: ${localDirConfig.path.split('/').pop() || 'Directory'}`
-        : `PostgreSQL: ${postgresConfig.database}`;
-      
       const config = selectedType === 'local_directory' ? localDirConfig : postgresConfig;
-      const dataSource = dataSourceManager.add(selectedType, name, config);
       
-      // Try to connect immediately
-      await dataSourceManager.connect(dataSource.id);
+      if (editingDataSource) {
+        // Update existing data source
+        const name = selectedType === 'local_directory' 
+          ? `Local: ${localDirConfig.path.split('/').pop() || 'Directory'}`
+          : `PostgreSQL: ${postgresConfig.database}`;
+        
+        dataSourceManager.update(editingDataSource.id, {
+          name,
+          shortName: shortName.trim(),
+          config,
+          type: selectedType
+        });
+        
+        // Try to reconnect
+        await dataSourceManager.connect(editingDataSource.id);
+      } else {
+        // Add new data source
+        const name = selectedType === 'local_directory' 
+          ? `Local: ${localDirConfig.path.split('/').pop() || 'Directory'}`
+          : `PostgreSQL: ${postgresConfig.database}`;
+        
+        const dataSource = dataSourceManager.add(selectedType, name, shortName.trim(), config);
+        
+        // Try to connect immediately
+        await dataSourceManager.connect(dataSource.id);
+      }
       
       onDataSourceAdded?.();
       onClose();
-      
-      // Reset form
-      setSelectedType(null);
-      setLocalDirConfig({ path: '', watchEnabled: true, syncEnabled: true });
-      setPostgresConfig({ host: 'localhost', port: 5432, database: '', username: '', password: '' });
-      setConnectionTestResult(null);
     } catch (error) {
-      console.error('Failed to add data source:', error);
+      console.error('Failed to save data source:', error);
       setConnectionTestResult({
         success: false,
-        message: `Failed to add data source: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        message: `Failed to save data source: ${error instanceof Error ? error.message : 'Unknown error'}`,
       });
     }
   };
 
   const isFormValid = () => {
-    if (!selectedType) return false;
+    if (!selectedType || !shortName.trim()) return false;
     
     if (selectedType === 'local_directory') {
       return !!localDirConfig.path;
@@ -132,7 +168,7 @@ export function DataSourceModal({ isOpen, onClose, onDataSourceAdded }: DataSour
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-            Import Data Source
+            {editingDataSource ? 'Edit Data Source' : 'Import Data Source'}
           </h2>
           <button
             onClick={onClose}
@@ -185,6 +221,25 @@ export function DataSourceModal({ isOpen, onClose, onDataSourceAdded }: DataSour
                 </select>
               </div>
 
+              {/* Short name input */}
+              {selectedType && (
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Short Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={shortName}
+                    onChange={(e) => setShortName(e.target.value)}
+                    placeholder="e.g. prod, staging, reports"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    Used for table naming: {shortName || 'shortname'}_filename
+                  </p>
+                </div>
+              )}
+
               {/* Configuration forms */}
               {selectedType === 'local_directory' && (
                 <div className="space-y-4">
@@ -201,9 +256,21 @@ export function DataSourceModal({ isOpen, onClose, onDataSourceAdded }: DataSour
                         className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       />
                       <button
-                        onClick={() => {
-                          // TODO: Implement directory picker using Tauri dialog
-                          console.log('Open directory picker');
+                        onClick={async () => {
+                          try {
+                            const { open } = await import('@tauri-apps/plugin-dialog');
+                            const selectedPath = await open({
+                              directory: true,
+                              multiple: false,
+                              title: 'Select Directory'
+                            });
+                            
+                            if (selectedPath && typeof selectedPath === 'string') {
+                              setLocalDirConfig({ ...localDirConfig, path: selectedPath });
+                            }
+                          } catch (error) {
+                            console.error('Failed to open directory picker:', error);
+                          }
                         }}
                         className="px-3 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg text-sm"
                       >
@@ -345,11 +412,11 @@ export function DataSourceModal({ isOpen, onClose, onDataSourceAdded }: DataSour
                   )}
                   
                   <button
-                    onClick={handleAddDataSource}
+                    onClick={handleSaveDataSource}
                     disabled={!isFormValid() || (selectedType === 'postgres' && !connectionTestResult?.success)}
                     className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Add Data Source
+                    {editingDataSource ? 'Update Data Source' : 'Add Data Source'}
                   </button>
                 </div>
               )}

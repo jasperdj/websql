@@ -12,8 +12,9 @@ import { DataSourceModal } from '@/components/DataSourceModal';
 import { DataSourceList } from '@/components/DataSourceList';
 import type { QueryResult } from '@/lib/duckdb';
 import type { Tab } from '@/types/tabs';
-import type { FileNode } from '@/types/dataSource';
+import type { FileNode, DataSource } from '@/types/dataSource';
 import { duckdbService } from '@/lib/duckdb';
+import { dataSourceManager } from '@/lib/dataSourceManager';
 import { savedQueriesService, type SavedQuery } from '@/lib/savedQueries';
 import { Database, Loader2 } from 'lucide-react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
@@ -22,6 +23,7 @@ function AppContent() {
   const { isInitialized, error } = useDuckDB();
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [showDataSourceModal, setShowDataSourceModal] = useState(false);
+  const [editingDataSource, setEditingDataSource] = useState<DataSource | null>(null);
   const [tabs, setTabs] = useState<Tab[]>([
     {
       id: '1',
@@ -175,6 +177,11 @@ function AppContent() {
     setRefreshTrigger(Date.now());
   }, []);
 
+  const handleEditDataSource = useCallback((dataSource: DataSource) => {
+    setEditingDataSource(dataSource);
+    setShowDataSourceModal(true);
+  }, []);
+
   const handleFileOpen = useCallback(async (dataSourceId: string, file: FileNode) => {
     if (!file.path) return;
     
@@ -182,13 +189,30 @@ function AppContent() {
     let newTab: Tab;
     
     if (file.fileType === 'columnar') {
-      // For columnar files, import to DuckDB and open as table
-      const tableName = `ds_${dataSourceId}_${fileName.replace(/\.[^/.]+$/, '').replace(/[^a-zA-Z0-9_]/g, '_')}`;
+      // Get the data source first to get shortName
+      const dataSource = dataSourceManager.get(dataSourceId);
+      if (!dataSource) {
+        alert('Data source not found');
+        return;
+      }
+      
+      // Use shortName for table naming
+      const tableName = `${dataSource.shortName}_${fileName.replace(/\.[^/.]+$/, '').replace(/[^a-zA-Z0-9_]/g, '_')}`;
       
       try {
-        // TODO: Implement actual file reading from data source
-        // For now, we'll simulate this
-        console.log(`Would import ${file.path} as ${tableName}`);
+
+        // Read the file
+        const fileBuffer = await dataSourceManager.readFile(dataSource, file.path);
+        
+        // Create a File object for the DuckDB import
+        const blob = new Blob([fileBuffer]);
+        const fileObj = new File([blob], fileName);
+        
+        // Import to DuckDB
+        await duckdbService.importFile(fileObj, tableName);
+        
+        // Track this table as a data source table
+        dataSourceManager.trackDataSourceTable(tableName, dataSourceId, file.path);
         
         newTab = {
           id: Date.now().toString(),
@@ -203,25 +227,63 @@ function AppContent() {
         return;
       }
     } else if (file.fileType === 'sql') {
-      // For SQL files, open in editor
-      newTab = {
-        id: Date.now().toString(),
-        title: fileName,
-        query: `-- Loading from: ${file.path}\n-- Content will be loaded here`,
-        isDirty: false,
-        isActive: true,
-        createdAt: Date.now(),
-      };
+      // For SQL files, open in editor with actual content
+      try {
+        const dataSource = dataSourceManager.get(dataSourceId);
+        if (!dataSource) {
+          throw new Error('Data source not found');
+        }
+        
+        const content = await dataSourceManager.readTextFile(dataSource, file.path);
+        
+        newTab = {
+          id: Date.now().toString(),
+          title: fileName,
+          query: `-- Loaded from: ${file.path}\n${content}`,
+          isDirty: false,
+          isActive: true,
+          createdAt: Date.now(),
+        };
+      } catch (error) {
+        console.error('Failed to read SQL file:', error);
+        newTab = {
+          id: Date.now().toString(),
+          title: fileName,
+          query: `-- Error loading from: ${file.path}\n-- ${error instanceof Error ? error.message : 'Unknown error'}`,
+          isDirty: false,
+          isActive: true,
+          createdAt: Date.now(),
+        };
+      }
     } else if (file.fileType === 'text') {
-      // For text files, open in text editor
-      newTab = {
-        id: Date.now().toString(),
-        title: fileName,
-        query: `-- Text file: ${file.path}\n-- Content will be loaded here`,
-        isDirty: false,
-        isActive: true,
-        createdAt: Date.now(),
-      };
+      // For text files, open in editor with actual content
+      try {
+        const dataSource = dataSourceManager.get(dataSourceId);
+        if (!dataSource) {
+          throw new Error('Data source not found');
+        }
+        
+        const content = await dataSourceManager.readTextFile(dataSource, file.path);
+        
+        newTab = {
+          id: Date.now().toString(),
+          title: fileName,
+          query: `-- Viewing text file: ${file.path}\n/*\n${content}\n*/`,
+          isDirty: false,
+          isActive: true,
+          createdAt: Date.now(),
+        };
+      } catch (error) {
+        console.error('Failed to read text file:', error);
+        newTab = {
+          id: Date.now().toString(),
+          title: fileName,
+          query: `-- Error loading from: ${file.path}\n-- ${error instanceof Error ? error.message : 'Unknown error'}`,
+          isDirty: false,
+          isActive: true,
+          createdAt: Date.now(),
+        };
+      }
     } else {
       // Unsupported file type
       alert(`Cannot open file type: ${file.fileType}`);
@@ -237,7 +299,10 @@ function AppContent() {
     // For columnar files, auto-execute the query
     if (file.fileType === 'columnar') {
       try {
-        const tableName = `ds_${dataSourceId}_${fileName.replace(/\.[^/.]+$/, '').replace(/[^a-zA-Z0-9_]/g, '_')}`;
+        const dataSource = dataSourceManager.get(dataSourceId);
+        if (!dataSource) return;
+        
+        const tableName = `${dataSource.shortName}_${fileName.replace(/\.[^/.]+$/, '').replace(/[^a-zA-Z0-9_]/g, '_')}`;
         const result = await duckdbService.query(`SELECT * FROM ${tableName} LIMIT 100`);
         setQueryResults((prev) => ({
           ...prev,
@@ -326,7 +391,10 @@ function AppContent() {
                 onImportDataSource={() => setShowDataSourceModal(true)}
               />
               <div className="flex-1 overflow-y-auto">
-                <DataSourceList onFileOpen={handleFileOpen} />
+                <DataSourceList 
+                  onFileOpen={handleFileOpen} 
+                  onEditDataSource={handleEditDataSource}
+                />
                 <TableList onInspectTable={handleInspectTable} refreshTrigger={refreshTrigger} />
                 <SavedQueries onLoadQuery={handleLoadSavedQuery} />
               </div>
@@ -382,11 +450,15 @@ function AppContent() {
       <DownloadLinks />
       <DataSourceModal 
         isOpen={showDataSourceModal}
-        onClose={() => setShowDataSourceModal(false)}
-        onDataSourceAdded={() => {
-          // TODO: Handle data source addition
-          setRefreshTrigger(prev => prev + 1);
+        onClose={() => {
+          setShowDataSourceModal(false);
+          setEditingDataSource(null);
         }}
+        onDataSourceAdded={() => {
+          setRefreshTrigger(prev => prev + 1);
+          setEditingDataSource(null);
+        }}
+        editingDataSource={editingDataSource}
       />
     </div>
   );

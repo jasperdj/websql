@@ -26,6 +26,8 @@
     "@tanstack/react-table": "^8.21.3",
     "@tanstack/react-virtual": "^3.13.9",
     "@tauri-apps/api": "^2.5.0",
+    "@tauri-apps/plugin-dialog": "^2.2.2",
+    "@tauri-apps/plugin-fs": "^2.3.0",
     "@tauri-apps/plugin-process": "^2.2.1",
     "@tauri-apps/plugin-updater": "^2.7.1",
     "ag-grid-community": "^33.3.0",

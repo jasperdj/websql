@@ -3,6 +3,7 @@ import { Table2, RefreshCw, ChevronRight, ChevronDown, Database, Search, Eye, Tr
 import { duckdbService } from '@/lib/duckdb';
 import { savedTablesService } from '@/lib/savedTables';
 import { tableMetadataService } from '@/lib/tableMetadata';
+import { dataSourceManager } from '@/lib/dataSourceManager';
 import { ContextMenu } from './ContextMenu';
 import { ExportSubmenu } from './ExportSubmenu';
 
@@ -44,7 +45,9 @@ export function TableList({ onInspectTable, refreshTrigger }: TableListProps) {
     setIsLoading(true);
     try {
       const tableList = await duckdbService.getTablesAndViews(includeSystem);
-      setTables(tableList);
+      // Filter out data source tables
+      const filteredTables = tableList.filter(table => !dataSourceManager.isDataSourceTable(table.name));
+      setTables(filteredTables);
     } catch (error) {
       console.error('Failed to load tables:', error);
     } finally {

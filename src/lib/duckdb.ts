@@ -144,6 +144,24 @@ class DuckDBService {
     await this.query(sql);
   }
 
+  async importFile(file: File, tableName: string): Promise<void> {
+    const fileName = file.name.toLowerCase();
+    
+    if (fileName.endsWith('.csv')) {
+      const content = await file.text();
+      await this.importCSV(tableName, content);
+    } else if (fileName.endsWith('.parquet')) {
+      const buffer = await file.arrayBuffer();
+      await this.importParquet(tableName, buffer);
+    } else if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
+      // For Excel files, we'll need to convert to CSV first
+      // For now, throw an error as this requires additional dependencies
+      throw new Error('Excel file import not yet implemented');
+    } else {
+      throw new Error(`Unsupported file type: ${fileName}`);
+    }
+  }
+
   async getTables(): Promise<string[]> {
     const result = await this.query("SHOW TABLES");
     return result.rows.map(row => row[0] as string);

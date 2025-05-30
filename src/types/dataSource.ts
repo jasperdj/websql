@@ -19,6 +19,7 @@ export interface DataSource {
   id: string;
   type: DataSourceType;
   name: string;
+  shortName: string;
   config: LocalDirConfig | PostgresConfig;
   status: 'connected' | 'disconnected' | 'error' | 'connecting';
   lastSync?: Date;

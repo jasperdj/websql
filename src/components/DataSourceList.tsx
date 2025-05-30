@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronRight, ChevronDown, Database, Folder, AlertCircle, RefreshCw, X } from 'lucide-react';
+import { ChevronRight, ChevronDown, Database, Folder, AlertCircle, RefreshCw, X, Edit } from 'lucide-react';
 import { dataSourceManager } from '@/lib/dataSourceManager';
 import { FileTreeView } from './FileTreeView';
 import type { DataSource, FileNode, LocalDirConfig } from '@/types/dataSource';
@@ -7,9 +7,10 @@ import { cn } from '@/utils/cn';
 
 interface DataSourceListProps {
   onFileOpen?: (dataSourceId: string, file: FileNode) => void;
+  onEditDataSource?: (dataSource: DataSource) => void;
 }
 
-export function DataSourceList({ onFileOpen }: DataSourceListProps) {
+export function DataSourceList({ onFileOpen, onEditDataSource }: DataSourceListProps) {
   const [dataSources, setDataSources] = useState<DataSource[]>([]);
   const [expandedSources, setExpandedSources] = useState<Set<string>>(new Set());
   const [isExpanded, setIsExpanded] = useState(true);
@@ -119,6 +120,13 @@ export function DataSourceList({ onFileOpen }: DataSourceListProps) {
                         <AlertCircle className="h-4 w-4 text-red-500" />
                       </span>
                     )}
+                    <button
+                      onClick={() => onEditDataSource?.(source)}
+                      className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded"
+                      title="Edit data source"
+                    >
+                      <Edit className="h-3 w-3 text-gray-500" />
+                    </button>
                     <button
                       onClick={() => handleRefresh(source)}
                       className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded"
