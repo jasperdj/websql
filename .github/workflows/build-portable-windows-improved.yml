@@ -1,0 +1,136 @@
+name: Build Portable Windows Executable (Improved)
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Release tag to upload to (e.g., v0.1.2)'
+        required: false
+        type: string
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-portable:
+    runs-on: windows-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+          cache-all-crates: true
+          cache-on-failure: true
+          # Use a more stable cache key that won't change as often
+          shared-key: "windows-stable"
+          # Remove the dynamic key to prevent cache misses
+          save-if: true
+          
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-registry-
+            
+      - name: Cache tauri build artifacts
+        uses: actions/cache@v4
+        with:
+          path: |
+            src-tauri/target/release/build/
+            src-tauri/target/release/deps/
+            src-tauri/target/release/.fingerprint/
+          key: ${{ runner.os }}-tauri-build-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-tauri-build-
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Sync versions
+        run: npm run version:sync
+        
+      - name: Build frontend
+        run: npm run build
+        
+      - name: Build Tauri (without bundling)
+        run: |
+          cd src-tauri
+          # Build only the binary, skip bundling to save time
+          cargo build --release
+          cd ..
+        env:
+          # Use sccache for additional caching
+          RUSTC_WRAPPER: ""
+          CARGO_INCREMENTAL: 1
+          
+      - name: Create portable package
+        run: |
+          # Create portable directory
+          mkdir -p portable
+          
+          # Copy the main executable
+          copy "src-tauri\target\release\websql-data-compare.exe" "portable\WebSQL.exe"
+          
+          # Copy WebView2 loader
+          copy "src-tauri\target\release\WebView2Loader.dll" "portable\" -ErrorAction SilentlyContinue
+          
+          # Copy frontend resources
+          if (Test-Path "dist") {
+            mkdir -p portable\resources
+            xcopy dist\* portable\resources\ /E /I /Y
+          }
+          
+          # Create a launcher script
+          @"
+          @echo off
+          cd /d "%~dp0"
+          start "" "WebSQL.exe"
+          "@ | Out-File -FilePath "portable\Launch WebSQL.bat" -Encoding ASCII
+          
+          # List portable contents
+          Write-Host "Portable package contents:"
+          Get-ChildItem -Path "portable" -Recurse | Select-Object FullName
+          
+      - name: Create portable archive
+        run: |
+          Compress-Archive -Path "portable\*" -DestinationPath "WebSQL-Portable-Windows.zip"
+          
+      - name: Upload portable package
+        uses: actions/upload-artifact@v4
+        with:
+          name: websql-portable-windows
+          path: WebSQL-Portable-Windows.zip
+          if-no-files-found: error
+          
+      - name: Upload to Release (on tag push)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: WebSQL-Portable-Windows.zip
+          name: WebSQL ${{ github.ref_name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: Upload to Release (manual dispatch)
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.release_tag != ''
+        run: |
+          gh release upload ${{ github.event.inputs.release_tag }} WebSQL-Portable-Windows.zip --clobber
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

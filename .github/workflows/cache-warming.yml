@@ -1,0 +1,43 @@
+name: Warm Rust Cache
+
+on:
+  schedule:
+    # Run daily to keep cache warm
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+
+jobs:
+  warm-cache:
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+          cache-all-crates: true
+          shared-key: "${{ runner.os }}-stable"
+          save-if: true
+          
+      - name: Download dependencies only
+        run: |
+          cd src-tauri
+          cargo fetch
+          cargo check --release
+        
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+          key: ${{ runner.os }}-cargo-registry-warm-${{ hashFiles('**/Cargo.lock') }}
