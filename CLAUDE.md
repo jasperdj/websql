@@ -180,7 +180,7 @@ npx vite build --config vite.config.tauri.ts
 
 # Then build Windows exe:
 cd src-tauri
-cargo build --release --target x86_64-pc-windows-gnu
+cargo build --release --target x86_64-pc-windows-gnu -j 8
 
 # Output: src-tauri/target/x86_64-pc-windows-gnu/release/websql-data-compare.exe
 ```
