@@ -129,7 +129,15 @@ export function FileTreeView({ dataSourceId, rootPath, onFileSelect }: FileTreeV
         // Read actual directory using Tauri fs API
         const { readDir } = await import('@tauri-apps/plugin-fs');
         
-        const entries = await readDir(rootPath);
+        console.log('Attempting to read directory:', rootPath);
+        let entries;
+        try {
+          entries = await readDir(rootPath);
+          console.log('Directory entries:', entries);
+        } catch (readError) {
+          console.error('ReadDir error:', readError);
+          throw new Error(`Failed to read directory: ${readError instanceof Error ? readError.message : String(readError)}`);
+        }
         
         const buildFileTree = (dirPath: string, entries: Array<{
           name: string;

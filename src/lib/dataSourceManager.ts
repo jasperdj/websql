@@ -123,13 +123,20 @@ class DataSourceManager {
         const isTauri = hasTauriGlobal || isTauriProtocol || isTauriDev;
 
         if (isTauri) {
-          // TODO: Implement actual directory check using Tauri fs API
           const config = source.config as LocalDirConfig;
           if (!config.path) {
             throw new Error('Directory path is required');
           }
-          // Simulate successful connection for now
-          return { success: true, message: 'Directory accessible' };
+          
+          try {
+            // Test directory access by trying to read it
+            const { readDir } = await import('@tauri-apps/plugin-fs');
+            await readDir(config.path);
+            return { success: true, message: 'Directory accessible' };
+          } catch (error) {
+            console.error('Directory test failed:', error);
+            throw new Error(`Cannot access directory: ${error instanceof Error ? error.message : 'Unknown error'}`);
+          }
         } else {
           throw new Error('Local directory access requires desktop app');
         }

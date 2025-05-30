@@ -258,6 +258,7 @@ export function DataSourceModal({ isOpen, onClose, onDataSourceAdded, editingDat
                       <button
                         onClick={async () => {
                           try {
+                            console.log('Opening directory picker...');
                             const { open } = await import('@tauri-apps/plugin-dialog');
                             const selectedPath = await open({
                               directory: true,
@@ -265,11 +266,15 @@ export function DataSourceModal({ isOpen, onClose, onDataSourceAdded, editingDat
                               title: 'Select Directory'
                             });
                             
+                            console.log('Selected path:', selectedPath);
                             if (selectedPath && typeof selectedPath === 'string') {
                               setLocalDirConfig({ ...localDirConfig, path: selectedPath });
+                            } else {
+                              console.log('No path selected or invalid type:', typeof selectedPath);
                             }
                           } catch (error) {
                             console.error('Failed to open directory picker:', error);
+                            alert(`Failed to open directory picker: ${error instanceof Error ? error.message : 'Unknown error'}`);
                           }
                         }}
                         className="px-3 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg text-sm"

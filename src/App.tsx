@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { DuckDBProvider, useDuckDB } from '@/contexts/DuckDBContext';
 import { FileImport } from '@/components/FileImport';
 import { SQLEditor } from '@/components/SQLEditor';
@@ -10,18 +10,29 @@ import { UpdateChecker } from '@/components/UpdateChecker';
 import { DownloadLinks } from '@/components/DownloadLinks';
 import { DataSourceModal } from '@/components/DataSourceModal';
 import { DataSourceList } from '@/components/DataSourceList';
+import { DevLogs } from '@/components/DevLogs';
 import type { QueryResult } from '@/lib/duckdb';
 import type { Tab } from '@/types/tabs';
 import type { FileNode, DataSource } from '@/types/dataSource';
 import { duckdbService } from '@/lib/duckdb';
 import { dataSourceManager } from '@/lib/dataSourceManager';
 import { savedQueriesService, type SavedQuery } from '@/lib/savedQueries';
+import { devLogger, devLog } from '@/lib/devLogger';
 import { Database, Loader2 } from 'lucide-react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 
 function AppContent() {
   const { isInitialized, error } = useDuckDB();
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  // Initialize dev logger
+  useEffect(() => {
+    devLog('WebSQL App initialized', { 
+      timestamp: new Date().toISOString(),
+      userAgent: navigator.userAgent,
+      location: window.location.href
+    });
+  }, []);
   const [showDataSourceModal, setShowDataSourceModal] = useState(false);
   const [editingDataSource, setEditingDataSource] = useState<DataSource | null>(null);
   const [tabs, setTabs] = useState<Tab[]>([
@@ -460,6 +471,7 @@ function AppContent() {
         }}
         editingDataSource={editingDataSource}
       />
+      <DevLogs />
     </div>
   );
 }
