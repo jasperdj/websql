@@ -18,6 +18,7 @@ import { duckdbService } from '@/lib/duckdb';
 import { dataSourceManager } from '@/lib/dataSourceManager';
 import { savedQueriesService, type SavedQuery } from '@/lib/savedQueries';
 import { devLogger, devLog } from '@/lib/devLogger';
+import { getShortVersionString } from '@/lib/version';
 import { Database, Loader2 } from 'lucide-react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 
@@ -386,10 +387,13 @@ function AppContent() {
   return (
     <div className="h-screen bg-gray-50 dark:bg-gray-900 flex flex-col overflow-hidden">
       <header className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
-        <div className="px-4 py-4">
+        <div className="px-4 py-4 flex items-center justify-between">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            WebSQL Data Compare
+            WebSQL
           </h1>
+          <div className="text-sm text-gray-500 dark:text-gray-400">
+            {getShortVersionString()}
+          </div>
         </div>
       </header>
 

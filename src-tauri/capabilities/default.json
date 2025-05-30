@@ -1,15 +1,23 @@
 {
   "$schema": "../gen/schemas/capabilities.json",
   "identifier": "default",
-  "description": "Default permissions for WebSQL Data Compare",
+  "description": "Default permissions for WebSQL",
   "platforms": ["linux", "macOS", "windows"],
   "permissions": [
     "core:default",
     "updater:default",
     "process:default",
+    "dialog:default",
     "fs:default",
-    "fs:read-all",
-    "fs:write-all",
-    "dialog:default"
+    "fs:allow-read-dir",
+    "fs:allow-read-file",
+    "fs:allow-write-file",
+    "fs:allow-exists",
+    "fs:allow-create",
+    "fs:allow-remove",
+    "fs:allow-rename",
+    "fs:allow-copy-file",
+    "fs:allow-watch",
+    "fs:allow-unwatch"
   ]
 }
