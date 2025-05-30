@@ -19,8 +19,15 @@ export function DownloadLinks() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
 
+  // Check if we're in Tauri using multiple methods
+  const isTauriProtocol = window.location.protocol === 'tauri:' || 
+                          window.location.protocol === 'https:' && window.location.hostname === 'tauri.localhost';
+  const isTauriDev = window.location.hostname === 'localhost' && window.location.port === '1420';
+  const hasTauriGlobal = !!(window.__TAURI__ || (window as any).__TAURI_INTERNALS__ || (window as any).__TAURI_INVOKE__);
+  const isTauri = hasTauriGlobal || isTauriProtocol || isTauriDev;
+
   useEffect(() => {
-    if (window.__TAURI__) return;
+    if (isTauri) return;
 
     fetch('https://api.github.com/repos/jasperdj/websql/releases/latest')
       .then(res => {
@@ -59,7 +66,7 @@ export function DownloadLinks() {
     return null;
   };
 
-  if (loading || !latestRelease || !latestRelease.assets || window.__TAURI__) return null;
+  if (loading || !latestRelease || !latestRelease.assets || isTauri) return null;
 
   const desktopAssets = latestRelease.assets
     .map(asset => {

@@ -147,24 +147,26 @@ export function DevLogs() {
                   {filteredLogs.map(log => (
                     <div
                       key={log.id}
-                      className="flex gap-2 p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                      className="p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-700/50"
                     >
-                      <span className="text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                        {log.timestamp.toLocaleTimeString()}
-                      </span>
-                      <span className={cn("font-semibold uppercase", getLevelColor(log.level))}>
-                        [{log.level}]
-                      </span>
-                      <span className="text-gray-800 dark:text-gray-200 break-all">
-                        {log.message}
-                      </span>
+                      <div className="flex gap-2">
+                        <span className="text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                          {log.timestamp.toLocaleTimeString()}
+                        </span>
+                        <span className={cn("font-semibold uppercase", getLevelColor(log.level))}>
+                          [{log.level}]
+                        </span>
+                        <span className="text-gray-800 dark:text-gray-200 break-all flex-1">
+                          {log.message}
+                        </span>
+                      </div>
                       {log.details && (
-                        <details className="ml-2">
-                          <summary className="cursor-pointer text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
-                            Details
+                        <details className="mt-1 ml-20">
+                          <summary className="cursor-pointer text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 text-xs">
+                            Details ({log.details.length} items)
                           </summary>
-                          <pre className="mt-1 p-2 bg-gray-100 dark:bg-gray-900 rounded text-xs overflow-x-auto">
-                            {JSON.stringify(log.details, null, 2)}
+                          <pre className="mt-1 p-2 bg-gray-100 dark:bg-gray-900 rounded text-xs overflow-x-auto whitespace-pre-wrap break-words">
+{JSON.stringify(log.details, null, 2)}
                           </pre>
                         </details>
                       )}

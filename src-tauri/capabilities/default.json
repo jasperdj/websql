@@ -8,6 +8,8 @@
     "updater:default",
     "process:default",
     "fs:default",
+    "fs:read-all",
+    "fs:write-all",
     "dialog:default"
   ]
 }
