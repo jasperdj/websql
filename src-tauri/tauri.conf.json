@@ -44,25 +44,9 @@
   },
   "plugins": {
     "fs": {
-      "all": true,
-      "readFile": true,
-      "writeFile": true,
-      "readDir": true,
-      "copyFile": true,
-      "createDir": true,
-      "removeDir": true,
-      "removeFile": true,
-      "renameFile": true,
-      "exists": true
+      "requireLiteralLeadingDot": true
     },
-    "dialog": {
-      "all": true,
-      "ask": true,
-      "confirm": true,
-      "message": true,
-      "save": true,
-      "open": true
-    },
+    "dialog": {},
     "updater": {
       "active": true,
       "endpoints": [
