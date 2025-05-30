@@ -46,7 +46,6 @@
     "fs": {
       "requireLiteralLeadingDot": true
     },
-    "dialog": {},
     "updater": {
       "active": true,
       "endpoints": [
