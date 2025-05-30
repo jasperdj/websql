@@ -73,12 +73,13 @@ jobs:
         run: |
           cd src-tauri
           # Build only the binary, skip bundling to save time
-          cargo build --release
+          cargo build --release -j 2
           cd ..
         env:
           # Use sccache for additional caching
           RUSTC_WRAPPER: ""
           CARGO_INCREMENTAL: 1
+          CARGO_BUILD_JOBS: 2
           
       - name: Create portable package
         run: |

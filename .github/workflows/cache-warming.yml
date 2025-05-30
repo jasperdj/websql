@@ -31,7 +31,9 @@ jobs:
         run: |
           cd src-tauri
           cargo fetch
-          cargo check --release
+          cargo check --release -j 2
+        env:
+          CARGO_BUILD_JOBS: 2
         
       - name: Cache cargo registry
         uses: actions/cache@v4
