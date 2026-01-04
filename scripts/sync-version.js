@@ -23,6 +23,10 @@ function syncVersion(newVersion) {
   // Use provided version or get from package.json
   const normalizedVersion = newVersion ? newVersion.replace(/^v/i, '') : newVersion;
   const version = normalizedVersion || packageJson.version;
+  const semverPattern = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/;
+  if (!semverPattern.test(version)) {
+    throw new Error(`Version must be a semver string (got "${version}")`);
+  }
   
   console.log(`Synchronizing version to: ${version}`);
   
