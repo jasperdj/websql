@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { DuckDBProvider, useDuckDB } from '@/contexts/DuckDBContext';
 import { FileImport } from '@/components/FileImport';
 import { SQLEditor } from '@/components/SQLEditor';
@@ -19,7 +19,6 @@ import { dataSourceManager } from '@/lib/dataSourceManager';
 import { savedQueriesService, type SavedQuery } from '@/lib/savedQueries';
 import { devLog } from '@/lib/devLogger';
 import { APP_VERSION, getAppVersion } from '@/lib/version';
-import { getShortVersionString } from '@/lib/version';
 import { Database, Loader2 } from 'lucide-react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 
@@ -45,6 +44,7 @@ function AppContent() {
 
     loadVersion();
   }, []);
+
   const [showDataSourceModal, setShowDataSourceModal] = useState(false);
   const [editingDataSource, setEditingDataSource] = useState<DataSource | null>(null);
   const [tabs, setTabs] = useState<Tab[]>([
@@ -59,8 +59,39 @@ function AppContent() {
   ]);
   const [activeTabId, setActiveTabId] = useState<string>('1');
   const [queryResults, setQueryResults] = useState<Record<string, QueryResult | null>>({});
+  const tabsRef = useRef<Tab[]>(tabs);
 
   const activeTab = tabs.find((tab) => tab.id === activeTabId);
+  useEffect(() => {
+    tabsRef.current = tabs;
+  }, [tabs]);
+
+  useEffect(() => {
+    const unsubscribe = dataSourceManager.subscribeToTableReload(async (tableName) => {
+      const matchingTabs = tabsRef.current.filter((tab) => {
+        const normalizedTable = tableName.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
+        const pattern = new RegExp(`\\bFROM\\s+${normalizedTable}\\b`, 'i');
+        return pattern.test(tab.query);
+      });
+
+      if (matchingTabs.length === 0) return;
+
+      await Promise.all(
+        matchingTabs.map(async (tab) => {
+          try {
+            const result = await duckdbService.query(tab.query);
+            if (!result.error) {
+              setQueryResults((prev) => ({ ...prev, [tab.id]: result }));
+            }
+          } catch (error) {
+            console.error(`Failed to refresh tab ${tab.title}:`, error);
+          }
+        })
+      );
+    });
+
+    return unsubscribe;
+  }, []);
 
   const handleTabSelect = useCallback((tabId: string) => {
     setTabs((prevTabs) =>
