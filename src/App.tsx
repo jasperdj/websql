@@ -19,6 +19,7 @@ import { dataSourceManager } from '@/lib/dataSourceManager';
 import { savedQueriesService, type SavedQuery } from '@/lib/savedQueries';
 import { devLog } from '@/lib/devLogger';
 import { APP_VERSION, getAppVersion } from '@/lib/version';
+import { getShortVersionString } from '@/lib/version';
 import { Database, Loader2 } from 'lucide-react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 
