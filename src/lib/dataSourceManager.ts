@@ -444,7 +444,8 @@ class DataSourceManager {
       try {
         const { stat } = await import('@tauri-apps/plugin-fs');
         const stats = await stat(filePath);
-        const mtimeValue = stats.mtime ?? Date.now();
+        const rawMtime = stats.mtime ?? Date.now();
+        const mtimeValue = rawMtime instanceof Date ? rawMtime.getTime() : rawMtime;
         const normalizedMtime = mtimeValue < 1e12 ? mtimeValue * 1000 : mtimeValue;
         return {
           modifiedAt: new Date(normalizedMtime)
