@@ -10,6 +10,7 @@ class DataSourceManager {
   // Track file modification times for change detection
   private fileTimestamps: Map<string, number> = new Map();
   private watcherInterval: NodeJS.Timeout | null = null;
+  private tableReloadListeners: Set<(tableName: string) => void> = new Set();
 
   constructor() {
     this.loadFromStorage();
@@ -51,6 +52,15 @@ class DataSourceManager {
   subscribe(listener: () => void): () => void {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);
+  }
+
+  subscribeToTableReload(listener: (tableName: string) => void): () => void {
+    this.tableReloadListeners.add(listener);
+    return () => this.tableReloadListeners.delete(listener);
+  }
+
+  private notifyTableReload(tableName: string): void {
+    this.tableReloadListeners.forEach(listener => listener(tableName));
   }
 
   getAll(): DataSource[] {
@@ -252,14 +262,15 @@ class DataSourceManager {
       try {
         if (typeof content === 'string') {
           const { writeTextFile } = await import('@tauri-apps/plugin-fs');
-          await writeTextFile(filePath, content);
+          await writeTextFile(filePath, content, { create: true });
         } else {
           const { writeFile } = await import('@tauri-apps/plugin-fs');
           const uint8Array = new Uint8Array(content);
-          await writeFile(filePath, uint8Array);
+          await writeFile(filePath, uint8Array, { create: true });
         }
       } catch (error) {
-        throw new Error(`Failed to write file: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        const details = error instanceof Error ? error.message : JSON.stringify(error);
+        throw new Error(`Failed to write file: ${details}`);
       }
     } else {
       throw new Error('File writing not implemented for this data source type');
@@ -343,12 +354,23 @@ class DataSourceManager {
       throw new Error('Data source not found');
     }
 
+    if (dataSource.type === 'local_directory') {
+      const config = dataSource.config as LocalDirConfig;
+      if (!config.syncEnabled) {
+        return;
+      }
+    }
+
     try {
       // Export table to CSV
       const csvContent = await this.exportTableToCSV(tableName);
       
       // Write back to source file
       await this.writeFile(dataSource, tableInfo.filePath, csvContent);
+      const stats = await this.getFileStats(dataSource, tableInfo.filePath);
+      if (stats) {
+        this.fileTimestamps.set(tableInfo.filePath, stats.modifiedAt.getTime());
+      }
       
       console.log(`Synced table ${tableName} to file ${tableInfo.filePath}`);
     } catch (error) {
@@ -383,6 +405,10 @@ class DataSourceManager {
       try {
         const dataSource = this.get(tableInfo.dataSourceId);
         if (!dataSource || dataSource.status !== 'connected') continue;
+        if (dataSource.type === 'local_directory') {
+          const config = dataSource.config as LocalDirConfig;
+          if (!config.watchEnabled) continue;
+        }
 
         // Get file stats to check modification time
         const stats = await this.getFileStats(dataSource, tableInfo.filePath);
@@ -445,6 +471,7 @@ class DataSourceManager {
       await duckdbService.importFile(fileObj, tableName);
       
       console.log(`Reloaded table ${tableName} from ${filePath}`);
+      this.notifyTableReload(tableName);
     } catch (error) {
       console.error(`Failed to reload table ${tableName}:`, error);
     }

@@ -23,7 +23,12 @@ export function DownloadLinks() {
   const isTauriProtocol = window.location.protocol === 'tauri:' || 
                           window.location.protocol === 'https:' && window.location.hostname === 'tauri.localhost';
   const isTauriDev = window.location.hostname === 'localhost' && window.location.port === '1420';
-  const hasTauriGlobal = !!(window.__TAURI__ || (window as any).__TAURI_INTERNALS__ || (window as any).__TAURI_INVOKE__);
+  const tauriWindow = window as Window & {
+    __TAURI__?: unknown;
+    __TAURI_INTERNALS__?: unknown;
+    __TAURI_INVOKE__?: unknown;
+  };
+  const hasTauriGlobal = !!(tauriWindow.__TAURI__ || tauriWindow.__TAURI_INTERNALS__ || tauriWindow.__TAURI_INVOKE__);
   const isTauri = hasTauriGlobal || isTauriProtocol || isTauriDev;
 
   useEffect(() => {
@@ -47,7 +52,7 @@ export function DownloadLinks() {
         console.log('No releases found or repository is private:', error.message);
         setLoading(false);
       });
-  }, []);
+  }, [isTauri]);
 
   const formatSize = (bytes: number) => {
     const mb = bytes / 1024 / 1024;
