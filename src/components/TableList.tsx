@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Table2, RefreshCw, ChevronRight, ChevronDown, Database, Search, Eye, Trash2, Settings, Download } from 'lucide-react';
 import { duckdbService } from '@/lib/duckdb';
 import { savedTablesService } from '@/lib/savedTables';
@@ -41,7 +41,7 @@ export function TableList({ onInspectTable, refreshTrigger }: TableListProps) {
   const [selectedTables, setSelectedTables] = useState<Set<string>>(new Set());
   const [lastSelectedTable, setLastSelectedTable] = useState<string | null>(null);
 
-  const loadTables = async (includeSystem: boolean = showSystemTables) => {
+  const loadTables = useCallback(async (includeSystem: boolean = showSystemTables) => {
     setIsLoading(true);
     try {
       const tableList = await duckdbService.getTablesAndViews(includeSystem);
@@ -53,12 +53,12 @@ export function TableList({ onInspectTable, refreshTrigger }: TableListProps) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [showSystemTables]);
 
-  const loadSavedTables = () => {
+  const loadSavedTables = useCallback(() => {
     const saved = savedTablesService.getAll();
     setSavedTables(new Set(saved.map(t => t.originalName)));
-  };
+  }, []);
 
   const loadTableInfo = async (tableName: string, type: 'table' | 'view', isSystem: boolean) => {
     setLoadingTables(prev => new Set(prev).add(tableName));
@@ -140,19 +140,19 @@ export function TableList({ onInspectTable, refreshTrigger }: TableListProps) {
     // Subscribe to saved tables changes
     const unsubscribe = savedTablesService.subscribe(loadSavedTables);
     return unsubscribe;
-  }, []);
+  }, [loadSavedTables, loadTables]);
 
   // Handle system tables toggle
   useEffect(() => {
     loadTables(showSystemTables);
-  }, [showSystemTables]);
+  }, [loadTables, showSystemTables]);
 
   // Handle refresh trigger
   useEffect(() => {
     if (refreshTrigger && refreshTrigger > 0) {
       loadTables(showSystemTables);
     }
-  }, [refreshTrigger]);
+  }, [loadTables, refreshTrigger, showSystemTables]);
 
   // Handle clicks outside bulk export menu and table selection
   useEffect(() => {
