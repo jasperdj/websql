@@ -262,14 +262,15 @@ class DataSourceManager {
       try {
         if (typeof content === 'string') {
           const { writeTextFile } = await import('@tauri-apps/plugin-fs');
-          await writeTextFile(filePath, content);
+          await writeTextFile(filePath, content, { create: true });
         } else {
           const { writeFile } = await import('@tauri-apps/plugin-fs');
           const uint8Array = new Uint8Array(content);
-          await writeFile(filePath, uint8Array);
+          await writeFile(filePath, uint8Array, { create: true });
         }
       } catch (error) {
-        throw new Error(`Failed to write file: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        const details = error instanceof Error ? error.message : JSON.stringify(error);
+        throw new Error(`Failed to write file: ${details}`);
       }
     } else {
       throw new Error('File writing not implemented for this data source type');

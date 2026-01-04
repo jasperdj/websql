@@ -141,7 +141,7 @@ jobs:
         run: npm ci
       
       - name: Sync versions
-        run: npm run version:sync
+        run: node scripts/sync-version.js "${{ github.event.inputs.version || github.ref_name }}"
 
       - name: Build Tauri app
         uses: tauri-apps/tauri-action@v0
