@@ -17,14 +17,15 @@ import type { FileNode, DataSource } from '@/types/dataSource';
 import { duckdbService } from '@/lib/duckdb';
 import { dataSourceManager } from '@/lib/dataSourceManager';
 import { savedQueriesService, type SavedQuery } from '@/lib/savedQueries';
-import { devLogger, devLog } from '@/lib/devLogger';
-import { getShortVersionString } from '@/lib/version';
+import { devLog } from '@/lib/devLogger';
+import { APP_VERSION, getAppVersion } from '@/lib/version';
 import { Database, Loader2 } from 'lucide-react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 
 function AppContent() {
   const { isInitialized, error } = useDuckDB();
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [appVersion, setAppVersion] = useState<string>(`v${APP_VERSION}`);
 
   // Initialize dev logger
   useEffect(() => {
@@ -33,6 +34,15 @@ function AppContent() {
       userAgent: navigator.userAgent,
       location: window.location.href
     });
+  }, []);
+
+  useEffect(() => {
+    const loadVersion = async () => {
+      const version = await getAppVersion();
+      setAppVersion(version);
+    };
+
+    loadVersion();
   }, []);
   const [showDataSourceModal, setShowDataSourceModal] = useState(false);
   const [editingDataSource, setEditingDataSource] = useState<DataSource | null>(null);
@@ -392,7 +402,7 @@ function AppContent() {
             WebSQL
           </h1>
           <div className="text-sm text-gray-500 dark:text-gray-400">
-            {getShortVersionString()}
+            {appVersion}
           </div>
         </div>
       </header>
