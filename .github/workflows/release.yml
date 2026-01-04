@@ -30,6 +30,9 @@ jobs:
       
       - name: Install dependencies
         run: npm ci
+
+      - name: Sync version for release
+        run: node scripts/sync-version.js "${{ github.event.inputs.version || github.ref_name }}"
       
       - name: Build web app
         run: npm run build
@@ -46,10 +49,11 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - platform: 'macos-latest'
-            args: '--target universal-apple-darwin'
-            name: 'macOS'
-            rust_targets: 'aarch64-apple-darwin,x86_64-apple-darwin'
+          # TODO: Re-enable macOS universal build once we're ready to absorb longer CI times.
+          # - platform: 'macos-latest'
+          #   args: '--target universal-apple-darwin'
+          #   name: 'macOS'
+          #   rust_targets: 'aarch64-apple-darwin,x86_64-apple-darwin'
           - platform: 'ubuntu-22.04'
             args: ''
             name: 'Linux'
@@ -64,6 +68,9 @@ jobs:
             rust_targets: 'aarch64-pc-windows-msvc'
 
     runs-on: ${{ matrix.platform }}
+    env:
+      RUSTC_WRAPPER: sccache
+      SCCACHE_GHA_ENABLED: "true"
     steps:
       - uses: actions/checkout@v4
 
@@ -83,7 +90,13 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.rust_targets }}
-      
+
+      - name: Sync version for release
+        run: node scripts/sync-version.js "${{ github.event.inputs.version || github.ref_name }}"
+
+      - name: Setup sccache
+        uses: mozilla-actions/sccache-action@v0.0.3
+
       - name: Rust cache
         uses: swatinem/rust-cache@v2
         with:
@@ -328,7 +341,6 @@ jobs:
             artifacts/**/*.deb
             artifacts/**/*.exe
             artifacts/**/*.msi
-            artifacts/**/README.txt
             latest.json
           draft: false
           prerelease: false
