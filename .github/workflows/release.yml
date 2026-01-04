@@ -328,7 +328,6 @@ jobs:
             artifacts/**/*.deb
             artifacts/**/*.exe
             artifacts/**/*.msi
-            artifacts/**/README.txt
             latest.json
           draft: false
           prerelease: false
