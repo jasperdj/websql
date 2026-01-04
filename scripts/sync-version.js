@@ -21,7 +21,8 @@ function syncVersion(newVersion) {
   let cargoToml = readFileSync(cargoTomlPath, 'utf8');
   
   // Use provided version or get from package.json
-  const version = newVersion || packageJson.version;
+  const normalizedVersion = newVersion ? newVersion.replace(/^v/i, '') : newVersion;
+  const version = normalizedVersion || packageJson.version;
   
   console.log(`Synchronizing version to: ${version}`);
   
