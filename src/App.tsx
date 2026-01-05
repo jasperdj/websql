@@ -251,10 +251,18 @@ function AppContent() {
       }
       
       // Use shortName for table naming
-      const tableName = `${dataSource.shortName}_${fileName.replace(/\.[^/.]+$/, '').replace(/[^a-zA-Z0-9_]/g, '_')}`;
+      const baseFileName = file.path
+        .split('/')
+        .pop()
+        ?.split('\\')
+        .pop() || fileName;
+      const baseName = file.sheetName
+        ? `${baseFileName.replace(/\.[^/.]+$/, '')}_${file.sheetName}`
+        : baseFileName.replace(/\.[^/.]+$/, '');
+      const tableName = `${dataSource.shortName}_${baseName.replace(/[^a-zA-Z0-9_]/g, '_')}`;
       
       try {
-
+        await duckdbService.query(`DROP TABLE IF EXISTS ${tableName}`);
         // Read the file
         const fileBuffer = await dataSourceManager.readFile(dataSource, file.path);
         
@@ -263,10 +271,14 @@ function AppContent() {
         const fileObj = new File([blob], fileName);
         
         // Import to DuckDB
-        await duckdbService.importFile(fileObj, tableName);
+        if (file.sheetName) {
+          await duckdbService.importXlsxSheet(tableName, fileBuffer, file.sheetName);
+        } else {
+          await duckdbService.importFile(fileObj, tableName);
+        }
         
         // Track this table as a data source table
-        dataSourceManager.trackDataSourceTable(tableName, dataSourceId, file.path);
+        dataSourceManager.trackDataSourceTable(tableName, dataSourceId, file.path, file.sheetName);
         
         newTab = {
           id: Date.now().toString(),

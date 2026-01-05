@@ -6,7 +6,7 @@ class DataSourceManager {
   private dataSources: Map<string, DataSource> = new Map();
   private listeners: Set<() => void> = new Set();
   // Track which tables are synced to data source files
-  private dataSourceTables: Map<string, { dataSourceId: string; filePath: string }> = new Map();
+  private dataSourceTables: Map<string, { dataSourceId: string; filePath: string; sheetName?: string }> = new Map();
   // Track file modification times for change detection
   private fileTimestamps: Map<string, number> = new Map();
   private watcherInterval: NodeJS.Timeout | null = null;
@@ -278,8 +278,8 @@ class DataSourceManager {
   }
 
   // Track a table as being synced to a data source file
-  trackDataSourceTable(tableName: string, dataSourceId: string, filePath: string): void {
-    this.dataSourceTables.set(tableName, { dataSourceId, filePath });
+  trackDataSourceTable(tableName: string, dataSourceId: string, filePath: string, sheetName?: string): void {
+    this.dataSourceTables.set(tableName, { dataSourceId, filePath, sheetName });
     
     // Initialize file timestamp and start watcher if not already running
     this.initializeFileTimestamp(tableName);
@@ -294,7 +294,7 @@ class DataSourceManager {
   }
 
   // Get data source info for a table
-  getDataSourceTableInfo(tableName: string): { dataSourceId: string; filePath: string } | null {
+  getDataSourceTableInfo(tableName: string): { dataSourceId: string; filePath: string; sheetName?: string } | null {
     return this.dataSourceTables.get(tableName) || null;
   }
 
@@ -362,11 +362,44 @@ class DataSourceManager {
     }
 
     try {
-      // Export table to CSV
-      const csvContent = await this.exportTableToCSV(tableName);
-      
-      // Write back to source file
-      await this.writeFile(dataSource, tableInfo.filePath, csvContent);
+      const fileExtension = tableInfo.filePath.split('.').pop()?.toLowerCase();
+      if (!fileExtension) {
+        throw new Error('Missing file extension for data source');
+      }
+
+      if (fileExtension === 'csv') {
+        const csvContent = await this.exportTableToCSV(tableName);
+        await this.writeFile(dataSource, tableInfo.filePath, csvContent);
+      } else if (fileExtension === 'parquet') {
+        const { duckdbService } = await import('./duckdb');
+        const parquetBuffer = await duckdbService.exportTableAsParquet(tableName);
+        await this.writeFile(dataSource, tableInfo.filePath, parquetBuffer);
+      } else if (fileExtension === 'xlsx' || fileExtension === 'xls') {
+        const { read, utils, write } = await import('xlsx');
+        const sheetName = tableInfo.sheetName || 'Sheet1';
+        let workbook;
+        try {
+          const existingBuffer = await this.readFile(dataSource, tableInfo.filePath);
+          workbook = read(existingBuffer, { type: 'array' });
+        } catch {
+          workbook = utils.book_new();
+        }
+        const { duckdbService } = await import('./duckdb');
+        const { columns, rows } = await duckdbService.exportTableAsXLSX(tableName);
+        const data = [columns, ...rows];
+        const worksheet = utils.aoa_to_sheet(data);
+        if (workbook.SheetNames.includes(sheetName)) {
+          workbook.Sheets[sheetName] = worksheet;
+        } else {
+          utils.book_append_sheet(workbook, worksheet, sheetName);
+        }
+        const updatedBuffer = write(workbook, { type: 'array', bookType: 'xlsx' });
+        await this.writeFile(dataSource, tableInfo.filePath, updatedBuffer);
+      } else {
+        console.warn(`Skipping sync for ${tableName}: unsupported file type ${fileExtension}`);
+        return;
+      }
+
       const stats = await this.getFileStats(dataSource, tableInfo.filePath);
       if (stats) {
         this.fileTimestamps.set(tableInfo.filePath, stats.modifiedAt.getTime());
@@ -418,8 +451,19 @@ class DataSourceManager {
         const lastTimestamp = this.fileTimestamps.get(tableInfo.filePath);
 
         if (lastTimestamp && currentTimestamp > lastTimestamp) {
-          console.log(`File changed: ${tableInfo.filePath}, reloading table ${tableName}`);
-          await this.reloadTableFromFile(tableName, dataSource, tableInfo.filePath);
+          const fileExtension = tableInfo.filePath.split('.').pop()?.toLowerCase();
+          if (fileExtension === 'xlsx' || fileExtension === 'xls') {
+            const relatedTables = Array.from(this.dataSourceTables.entries())
+              .filter(([, info]) => info.filePath === tableInfo.filePath)
+              .map(([name]) => name);
+            for (const relatedTable of relatedTables) {
+              console.log(`File changed: ${tableInfo.filePath}, reloading table ${relatedTable}`);
+              await this.reloadTableFromFile(relatedTable, dataSource, tableInfo.filePath);
+            }
+          } else {
+            console.log(`File changed: ${tableInfo.filePath}, reloading table ${tableName}`);
+            await this.reloadTableFromFile(tableName, dataSource, tableInfo.filePath);
+          }
         }
 
         this.fileTimestamps.set(tableInfo.filePath, currentTimestamp);
@@ -471,7 +515,12 @@ class DataSourceManager {
       // Drop the existing table and recreate it
       const { duckdbService } = await import('./duckdb');
       await duckdbService.query(`DROP TABLE IF EXISTS ${tableName}`);
-      await duckdbService.importFile(fileObj, tableName);
+      const tableInfo = this.getDataSourceTableInfo(tableName);
+      if (tableInfo?.sheetName) {
+        await duckdbService.importXlsxSheet(tableName, fileBuffer, tableInfo.sheetName);
+      } else {
+        await duckdbService.importFile(fileObj, tableName);
+      }
       
       console.log(`Reloaded table ${tableName} from ${filePath}`);
       this.notifyTableReload(tableName);

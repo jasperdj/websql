@@ -30,6 +30,11 @@ const isTauriApp = () => {
 };
 
 export const getAppVersion = async (): Promise<string> => {
+  const prNumber = import.meta.env.VITE_PR_NUMBER;
+  if (prNumber) {
+    return `PR.${prNumber}`;
+  }
+
   if (!isTauriApp()) {
     return getShortVersionString();
   }

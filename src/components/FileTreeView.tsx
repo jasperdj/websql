@@ -139,12 +139,12 @@ export function FileTreeView({ dataSourceId, rootPath, onFileSelect }: FileTreeV
           throw new Error(`Failed to read directory: ${readError instanceof Error ? readError.message : String(readError)}`);
         }
         
-        const buildFileTree = (dirPath: string, entries: Array<{
+        const buildFileTree = async (dirPath: string, entries: Array<{
           name: string;
           isDirectory: boolean;
           size?: number;
           modifiedAt?: string;
-        }>): FileNode => {
+        }>): Promise<FileNode> => {
           const dirName = dirPath.split('/').pop() || dirPath.split('\\').pop() || 'Root';
           const children: FileNode[] = [];
           
@@ -159,11 +159,14 @@ export function FileTreeView({ dataSourceId, rootPath, onFileSelect }: FileTreeV
           for (const entry of dirEntries) {
             const name = entry.name.split('/').pop() || entry.name.split('\\').pop() || 'unknown';
             const fullPath = `${rootPath}/${entry.name}`.replace(/\\/g, '/');
+            if (name.startsWith('~$')) {
+              continue;
+            }
             
             if (entry.isDirectory) {
               // Recursively build subdirectory
               const subdirEntries = entries.filter(e => e.name.startsWith(entry.name + '/'));
-              children.push(buildFileTree(fullPath, subdirEntries));
+              children.push(await buildFileTree(fullPath, subdirEntries));
             } else {
               // Add file
               const ext = name.split('.').pop()?.toLowerCase();
@@ -176,15 +179,36 @@ export function FileTreeView({ dataSourceId, rootPath, onFileSelect }: FileTreeV
               } else if (['txt', 'md', 'json', 'xml', 'log'].includes(ext || '')) {
                 fileType = 'text';
               }
-              
-              children.push({
-                name,
-                path: fullPath,
-                type: 'file',
-                fileType,
-                size: entry.size || 0,
-                modifiedAt: entry.modifiedAt ? new Date(entry.modifiedAt) : new Date(),
-              });
+
+              if (ext === 'xlsx' || ext === 'xls') {
+                const { read } = await import('xlsx');
+                const { readFile } = await import('@tauri-apps/plugin-fs');
+                const buffer = await readFile(fullPath);
+                const workbook = read(buffer, { type: 'array' });
+                const sheetChildren = workbook.SheetNames.map((sheetName: string) => ({
+                  name: sheetName,
+                  path: fullPath,
+                  type: 'file' as const,
+                  fileType: 'columnar' as const,
+                  sheetName,
+                }));
+
+                children.push({
+                  name,
+                  path: fullPath,
+                  type: 'directory',
+                  children: sheetChildren,
+                });
+              } else {
+                children.push({
+                  name,
+                  path: fullPath,
+                  type: 'file',
+                  fileType,
+                  size: entry.size || 0,
+                  modifiedAt: entry.modifiedAt ? new Date(entry.modifiedAt) : new Date(),
+                });
+              }
             }
           }
           
@@ -202,7 +226,7 @@ export function FileTreeView({ dataSourceId, rootPath, onFileSelect }: FileTreeV
           };
         };
         
-        const rootNode = buildFileTree(rootPath, entries);
+        const rootNode = await buildFileTree(rootPath, entries);
         setRootNode(rootNode);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load directory');
