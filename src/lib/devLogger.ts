@@ -5,7 +5,7 @@ export interface LogEntry {
   timestamp: Date;
   level: 'log' | 'info' | 'warn' | 'error' | 'debug';
   message: string;
-  details?: any[];
+  details?: unknown[];
 }
 
 class DevLogger {
@@ -52,7 +52,7 @@ class DevLogger {
     };
   }
 
-  private addLog(level: LogEntry['level'], args: any[]) {
+  private addLog(level: LogEntry['level'], args: unknown[]) {
     const entry: LogEntry = {
       id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       timestamp: new Date(),
@@ -71,7 +71,7 @@ class DevLogger {
     this.notifyListeners();
   }
 
-  private formatMessage(args: any[]): string {
+  private formatMessage(args: unknown[]): string {
     if (args.length === 0) return '';
     
     const first = args[0];
@@ -122,6 +122,6 @@ class DevLogger {
 export const devLogger = new DevLogger();
 
 // Also export a manual log function for important dev messages
-export function devLog(message: string, ...details: any[]) {
+export function devLog(message: string, ...details: unknown[]) {
   console.log(`[DEV] ${message}`, ...details);
 }
