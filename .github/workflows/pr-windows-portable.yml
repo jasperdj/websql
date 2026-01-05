@@ -1,0 +1,143 @@
+name: PR Windows Portable Build
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+jobs:
+  build-portable-x64:
+    runs-on: windows-latest
+    env:
+      RUSTC_WRAPPER: sccache
+      SCCACHE_GHA_ENABLED: "true"
+      CARGO_INCREMENTAL: "1"
+      CARGO_HOME: ${{ github.workspace }}\\.cargo
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+          cache-all-crates: true
+          cache-on-failure: true
+          cache-targets: false
+          shared-key: "pr-windows-tauri"
+          key: "pr-windows-x64-${{ hashFiles('**/Cargo.lock') }}"
+
+      - name: Cache Cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            .cargo/registry
+            .cargo/git
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Setup sccache
+        uses: mozilla-actions/sccache-action@v0.0.3
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Sync versions
+        run: npm run version:sync
+
+      - name: Build Tauri app
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ""
+          CARGO_BUILD_JOBS: 2
+          VITE_PR_NUMBER: ${{ github.event.pull_request.number }}
+        with:
+          args: '--target x86_64-pc-windows-msvc'
+
+      - name: Create portable package
+        shell: powershell
+        run: |
+          New-Item -ItemType Directory -Force -Path "portable"
+          Copy-Item "src-tauri\target\x86_64-pc-windows-msvc\release\websql-data-compare.exe" "portable\WebSQL.exe"
+          Copy-Item "src-tauri\target\x86_64-pc-windows-msvc\release\WebView2Loader.dll" "portable\" -ErrorAction SilentlyContinue
+
+          $installerPath = Get-ChildItem -Path "src-tauri\target\x86_64-pc-windows-msvc\release\bundle\nsis" -Filter "*.exe" | Select-Object -First 1
+
+          if (!(Test-Path "C:\Program Files\7-Zip\7z.exe")) {
+            Invoke-WebRequest -Uri "https://www.7-zip.org/a/7z2301-x64.exe" -OutFile "7z-installer.exe"
+            Start-Process -FilePath "7z-installer.exe" -ArgumentList "/S" -Wait
+          }
+
+          & "C:\Program Files\7-Zip\7z.exe" x $installerPath.FullName -o"temp_extract" -y
+
+          if (Test-Path "temp_extract\$PLUGINSDIR\app-64.7z") {
+            & "C:\Program Files\7-Zip\7z.exe" x "temp_extract\$PLUGINSDIR\app-64.7z" -o"app_files" -y
+            if (Test-Path "app_files\resources") {
+              Copy-Item "app_files\resources" "portable\resources" -Recurse -Force
+            }
+            if (Test-Path "app_files\WebView2Loader.dll") {
+              Copy-Item "app_files\WebView2Loader.dll" "portable\"
+            }
+          }
+
+          @"
+          @echo off
+          cd /d "%~dp0"
+          start "" "WebSQL.exe"
+          "@ | Out-File -FilePath "portable\Launch WebSQL.bat" -Encoding ASCII
+
+          Remove-Item -Path "temp_extract" -Recurse -Force -ErrorAction SilentlyContinue
+          Remove-Item -Path "app_files" -Recurse -Force -ErrorAction SilentlyContinue
+
+      - name: Upload portable executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: websql-portable-windows-x64
+          path: portable/WebSQL.exe
+          if-no-files-found: error
+
+      - name: Add build summary
+        shell: bash
+        run: |
+          {
+            echo "## Portable Windows x64 Artifact"
+            echo ""
+            echo "Download the artifact from the workflow run page:"
+            echo ""
+            echo "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Comment on PR with artifact link
+        if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork == false }}
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const runUrl = `https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}`;
+            const body = [
+              '✅ Portable Windows x64 build is ready.',
+              '',
+              `Download: ${runUrl}`,
+              '',
+              'Artifact name: `websql-portable-windows-x64`',
+            ].join('\n');
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body,
+            });

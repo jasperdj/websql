@@ -69,8 +69,17 @@ export function FileImport({ onImportComplete, onImportDataSource }: FileImportP
           originalFilename: file.name,
         });
       } else if (extension === 'xlsx' || extension === 'xls') {
-        // TODO: Implement XLSX import
-        throw new Error('XLSX import not yet implemented');
+        const buffer = await file.arrayBuffer();
+        const tables = await duckdbService.importXlsx(tableName, buffer);
+        if (tables.length === 0) {
+          throw new Error('No sheets found in XLSX file');
+        }
+        tables.forEach((createdTable) => {
+          tableMetadataService.create(createdTable, {
+            origin: 'file',
+            originalFilename: file.name,
+          });
+        });
       } else {
         throw new Error(`Unsupported file type: ${extension}`);
       }
