@@ -144,6 +144,44 @@ class DuckDBService {
     await this.query(sql);
   }
 
+  async importXlsx(tableName: string, buffer: ArrayBuffer): Promise<string[]> {
+    if (!this.conn) {
+      await this.initialize();
+    }
+
+    const { read, utils } = await import('xlsx');
+    const workbook = read(buffer, { type: 'array' });
+    const createdTables: string[] = [];
+
+    for (const sheetName of workbook.SheetNames) {
+      const sheet = workbook.Sheets[sheetName];
+      if (!sheet) continue;
+      const csv = this.sheetToCsv(utils, sheet);
+      if (!csv.trim()) continue;
+      const sanitizedSheet = sheetName.replace(/[^a-zA-Z0-9_]/g, '_');
+      const sheetTableName = `${tableName}_${sanitizedSheet}`;
+      await this.importCSV(sheetTableName, csv);
+      createdTables.push(sheetTableName);
+    }
+
+    return createdTables;
+  }
+
+  async importXlsxSheet(tableName: string, buffer: ArrayBuffer, sheetName: string): Promise<void> {
+    if (!this.conn) {
+      await this.initialize();
+    }
+
+    const { read, utils } = await import('xlsx');
+    const workbook = read(buffer, { type: 'array' });
+    const sheet = workbook.Sheets[sheetName];
+    if (!sheet) {
+      throw new Error(`Sheet "${sheetName}" not found in workbook`);
+    }
+    const csv = this.sheetToCsv(utils, sheet);
+    await this.importCSV(tableName, csv);
+  }
+
   async importFile(file: File, tableName: string): Promise<void> {
     const fileName = file.name.toLowerCase();
     
@@ -154,9 +192,8 @@ class DuckDBService {
       const buffer = await file.arrayBuffer();
       await this.importParquet(tableName, buffer);
     } else if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
-      // For Excel files, we'll need to convert to CSV first
-      // For now, throw an error as this requires additional dependencies
-      throw new Error('Excel file import not yet implemented');
+      const buffer = await file.arrayBuffer();
+      await this.importXlsx(tableName, buffer);
     } else {
       throw new Error(`Unsupported file type: ${fileName}`);
     }
@@ -380,9 +417,15 @@ class DuckDBService {
 
   async exportTableAsParquet(tableName: string): Promise<ArrayBuffer> {
     try {
-      // For now, throw an error as DuckDB WASM doesn't support direct Parquet export
-      // This would require additional setup with the DuckDB WASM API
-      throw new Error('Parquet export is not yet implemented in the browser environment');
+      if (!this.db) {
+        await this.initialize();
+      }
+
+      const fileName = `${tableName}_${Date.now()}.parquet`;
+      await this.query(`COPY (SELECT * FROM ${tableName}) TO '${fileName}' (FORMAT 'parquet')`);
+      const buffer = await this.db!.copyFileToBuffer(fileName);
+      this.db!.dropFile(fileName);
+      return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
     } catch (error) {
       throw new Error(`Failed to export ${tableName} as Parquet: ${error instanceof Error ? error.message : String(error)}`);
     }
@@ -398,6 +441,35 @@ class DuckDBService {
     } catch (error) {
       throw new Error(`Failed to export ${tableName} for XLSX: ${error instanceof Error ? error.message : String(error)}`);
     }
+  }
+
+  async exportTableAsXLSXBuffer(tableName: string, sheetName: string): Promise<ArrayBuffer> {
+    const { columns, rows } = await this.exportTableAsXLSX(tableName);
+    const { utils, write } = await import('xlsx');
+    const data = [columns, ...rows];
+    const worksheet = utils.aoa_to_sheet(data);
+    const workbook = utils.book_new();
+    utils.book_append_sheet(workbook, worksheet, sheetName);
+    return write(workbook, { type: 'array', bookType: 'xlsx' });
+  }
+
+  private sheetToCsv(utils: typeof import('xlsx').utils, sheet: import('xlsx').WorkSheet): string {
+    const rows = utils.sheet_to_json(sheet, { header: 1, raw: true, defval: '' }) as Array<unknown[]>;
+    if (!rows.length) {
+      return '';
+    }
+
+    const escapeValue = (value: unknown) => {
+      const stringValue = value === null || value === undefined ? '' : String(value);
+      if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')) {
+        return `"${stringValue.replace(/"/g, '""')}"`;
+      }
+      return stringValue;
+    };
+
+    return rows
+      .map((row) => row.map(escapeValue).join(','))
+      .join('\n');
   }
 
   async close(): Promise<void> {

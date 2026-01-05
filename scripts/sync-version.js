@@ -7,7 +7,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const rootDir = join(__dirname, '..');
 
-function syncVersion(newVersion) {
+function syncVersion(newVersion, { checkOnly = false } = {}) {
   // Read package.json
   const packageJsonPath = join(rootDir, 'package.json');
   const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf8'));
@@ -21,8 +21,25 @@ function syncVersion(newVersion) {
   let cargoToml = readFileSync(cargoTomlPath, 'utf8');
   
   // Use provided version or get from package.json
-  const version = newVersion || packageJson.version;
+  const normalizedVersion = newVersion ? newVersion.replace(/^v/i, '') : newVersion;
+  const version = normalizedVersion || packageJson.version;
+  const semverPattern = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/;
+  if (!semverPattern.test(version)) {
+    throw new Error(`Version must be a semver string (got "${version}")`);
+  }
   
+  if (checkOnly) {
+    const tauriVersion = tauriConf.version;
+    const cargoMatch = cargoToml.match(/^version = "(.+)"$/m);
+    const cargoVersion = cargoMatch ? cargoMatch[1] : null;
+    const matches = version === tauriVersion && version === cargoVersion;
+    if (!matches) {
+      throw new Error('Version files are not synchronized');
+    }
+    console.log('✅ Version files are synchronized');
+    return;
+  }
+
   console.log(`Synchronizing version to: ${version}`);
   
   // Update package.json
@@ -48,9 +65,12 @@ function syncVersion(newVersion) {
 
 // Check if version argument is provided
 const args = process.argv.slice(2);
-if (args.length > 0 && args[0]) {
-  syncVersion(args[0]);
+const checkOnly = args.includes('--check');
+const versionArg = args.find(arg => arg && arg !== '--check');
+
+if (versionArg) {
+  syncVersion(versionArg, { checkOnly });
 } else {
   // Sync using current package.json version
-  syncVersion();
+  syncVersion(undefined, { checkOnly });
 }

@@ -24,7 +24,7 @@ jobs:
       - name: Check version synchronization
         run: |
           # Run sync-version in check mode
-          node scripts/sync-version.js
+          node scripts/sync-version.js --check
           # Check if any files were modified
           if ! git diff --quiet; then
             echo "❌ Version files are not synchronized!"

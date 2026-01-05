@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { DuckDBProvider, useDuckDB } from '@/contexts/DuckDBContext';
 import { FileImport } from '@/components/FileImport';
 import { SQLEditor } from '@/components/SQLEditor';
@@ -17,14 +17,15 @@ import type { FileNode, DataSource } from '@/types/dataSource';
 import { duckdbService } from '@/lib/duckdb';
 import { dataSourceManager } from '@/lib/dataSourceManager';
 import { savedQueriesService, type SavedQuery } from '@/lib/savedQueries';
-import { devLogger, devLog } from '@/lib/devLogger';
-import { getShortVersionString } from '@/lib/version';
+import { devLog } from '@/lib/devLogger';
+import { APP_VERSION, getAppVersion } from '@/lib/version';
 import { Database, Loader2 } from 'lucide-react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 
 function AppContent() {
   const { isInitialized, error } = useDuckDB();
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [appVersion, setAppVersion] = useState<string>(`v${APP_VERSION}`);
 
   // Initialize dev logger
   useEffect(() => {
@@ -34,6 +35,16 @@ function AppContent() {
       location: window.location.href
     });
   }, []);
+
+  useEffect(() => {
+    const loadVersion = async () => {
+      const version = await getAppVersion();
+      setAppVersion(version);
+    };
+
+    loadVersion();
+  }, []);
+
   const [showDataSourceModal, setShowDataSourceModal] = useState(false);
   const [editingDataSource, setEditingDataSource] = useState<DataSource | null>(null);
   const [tabs, setTabs] = useState<Tab[]>([
@@ -48,8 +59,39 @@ function AppContent() {
   ]);
   const [activeTabId, setActiveTabId] = useState<string>('1');
   const [queryResults, setQueryResults] = useState<Record<string, QueryResult | null>>({});
+  const tabsRef = useRef<Tab[]>(tabs);
 
   const activeTab = tabs.find((tab) => tab.id === activeTabId);
+  useEffect(() => {
+    tabsRef.current = tabs;
+  }, [tabs]);
+
+  useEffect(() => {
+    const unsubscribe = dataSourceManager.subscribeToTableReload(async (tableName) => {
+      const matchingTabs = tabsRef.current.filter((tab) => {
+        const normalizedTable = tableName.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
+        const pattern = new RegExp(`\\bFROM\\s+${normalizedTable}\\b`, 'i');
+        return pattern.test(tab.query);
+      });
+
+      if (matchingTabs.length === 0) return;
+
+      await Promise.all(
+        matchingTabs.map(async (tab) => {
+          try {
+            const result = await duckdbService.query(tab.query);
+            if (!result.error) {
+              setQueryResults((prev) => ({ ...prev, [tab.id]: result }));
+            }
+          } catch (error) {
+            console.error(`Failed to refresh tab ${tab.title}:`, error);
+          }
+        })
+      );
+    });
+
+    return unsubscribe;
+  }, []);
 
   const handleTabSelect = useCallback((tabId: string) => {
     setTabs((prevTabs) =>
@@ -209,10 +251,18 @@ function AppContent() {
       }
       
       // Use shortName for table naming
-      const tableName = `${dataSource.shortName}_${fileName.replace(/\.[^/.]+$/, '').replace(/[^a-zA-Z0-9_]/g, '_')}`;
+      const baseFileName = file.path
+        .split('/')
+        .pop()
+        ?.split('\\')
+        .pop() || fileName;
+      const baseName = file.sheetName
+        ? `${baseFileName.replace(/\.[^/.]+$/, '')}_${file.sheetName}`
+        : baseFileName.replace(/\.[^/.]+$/, '');
+      const tableName = `${dataSource.shortName}_${baseName.replace(/[^a-zA-Z0-9_]/g, '_')}`;
       
       try {
-
+        await duckdbService.query(`DROP TABLE IF EXISTS ${tableName}`);
         // Read the file
         const fileBuffer = await dataSourceManager.readFile(dataSource, file.path);
         
@@ -221,10 +271,14 @@ function AppContent() {
         const fileObj = new File([blob], fileName);
         
         // Import to DuckDB
-        await duckdbService.importFile(fileObj, tableName);
+        if (file.sheetName) {
+          await duckdbService.importXlsxSheet(tableName, fileBuffer, file.sheetName);
+        } else {
+          await duckdbService.importFile(fileObj, tableName);
+        }
         
         // Track this table as a data source table
-        dataSourceManager.trackDataSourceTable(tableName, dataSourceId, file.path);
+        dataSourceManager.trackDataSourceTable(tableName, dataSourceId, file.path, file.sheetName);
         
         newTab = {
           id: Date.now().toString(),
@@ -392,7 +446,7 @@ function AppContent() {
             WebSQL
           </h1>
           <div className="text-sm text-gray-500 dark:text-gray-400">
-            {getShortVersionString()}
+            {appVersion}
           </div>
         </div>
       </header>
