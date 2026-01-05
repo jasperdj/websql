@@ -85,7 +85,7 @@ export function TableViewer({ result, query }: TableViewerProps) {
         return classes.join(' ');
       },
     }));
-  }, [result, editableInfo.isEditable, selectedCells]);
+  }, [result, selectedCells]);
 
   const rowData = useMemo(() => {
     if (!result || !result.rows) return [];

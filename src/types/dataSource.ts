@@ -36,4 +36,5 @@ export interface FileNode {
   fileType?: 'columnar' | 'text' | 'sql' | 'other';
   size?: number;
   modifiedAt?: Date;
+  sheetName?: string;
 }
