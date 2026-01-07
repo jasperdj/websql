@@ -26,6 +26,7 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
+      # Rust cache - each build saves cache for subsequent builds
       - name: Rust cache
         uses: swatinem/rust-cache@v2
         with:
@@ -33,7 +34,6 @@ jobs:
           cache-all-crates: true
           cache-on-failure: true
           shared-key: "windows-warm"
-          save-if: ${{ github.ref == 'refs/heads/main' }}
 
       - name: Install dependencies
         run: npm ci
