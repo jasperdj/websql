@@ -191,7 +191,7 @@ cargo build --release --target x86_64-pc-windows-gnu -j 8
 - **Both/unsure**: Build frontend → Build exe
 
 ## Memories
-- Always echo -e "\a" as the LAST SEPARATE command before finishing a task (cannot be appended with &). This ensures the audio alert is played after task completion.
+- Always run `powershell.exe -Command "[console]::beep(1000,500)"` as the LAST SEPARATE command before finishing a task. This plays an audio alert after task completion.
 
 ## CRITICAL CODE AND COMMIT GUIDELINES
 - **NEVER mention "Claude" in git commits, commit messages, or anywhere in the source code**
