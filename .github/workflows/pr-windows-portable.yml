@@ -12,10 +12,7 @@ jobs:
   build-portable-x64:
     runs-on: windows-latest
     env:
-      RUSTC_WRAPPER: sccache
-      SCCACHE_GHA_ENABLED: "true"
-      CARGO_INCREMENTAL: "1"
-      CARGO_HOME: ${{ github.workspace }}\\.cargo
+      CARGO_INCREMENTAL: "0"
 
     steps:
       - uses: actions/checkout@v4
@@ -35,22 +32,8 @@ jobs:
           workspaces: './src-tauri -> target'
           cache-all-crates: true
           cache-on-failure: true
-          cache-targets: false
-          shared-key: "pr-windows-tauri"
-          key: "pr-windows-x64-${{ hashFiles('**/Cargo.lock') }}"
-
-      - name: Cache Cargo registry
-        uses: actions/cache@v4
-        with:
-          path: |
-            .cargo/registry
-            .cargo/git
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-
-
-      - name: Setup sccache
-        uses: mozilla-actions/sccache-action@v0.0.3
+          shared-key: "windows-warm"
+          save-if: ${{ github.ref == 'refs/heads/main' }}
 
       - name: Install dependencies
         run: npm ci

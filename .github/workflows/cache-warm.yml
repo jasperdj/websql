@@ -34,10 +34,14 @@ jobs:
           cache-all-crates: true
           cache-on-failure: true
           shared-key: "${{ matrix.key }}-warm"
-      
-      - name: Download dependencies
+
+      - name: Build dependencies (warm cache)
         working-directory: src-tauri
-        run: cargo fetch
+        run: |
+          cargo fetch
+          cargo check --release -j 2
+        env:
+          CARGO_INCREMENTAL: "0"
   
   warm-node-cache:
     runs-on: ubuntu-latest
