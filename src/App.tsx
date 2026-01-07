@@ -367,8 +367,13 @@ function AppContent() {
       try {
         const dataSource = dataSourceManager.get(dataSourceId);
         if (!dataSource) return;
-        
-        const tableName = `${dataSource.shortName}_${fileName.replace(/\.[^/.]+$/, '').replace(/[^a-zA-Z0-9_]/g, '_')}`;
+
+        // Must match table name construction from above (lines 254-262)
+        const baseFileName = file.path.split('/').pop()?.split('\\').pop() || fileName;
+        const baseName = file.sheetName
+          ? `${baseFileName.replace(/\.[^/.]+$/, '')}_${file.sheetName}`
+          : baseFileName.replace(/\.[^/.]+$/, '');
+        const tableName = `${dataSource.shortName}_${baseName.replace(/[^a-zA-Z0-9_]/g, '_')}`;
         const result = await duckdbService.query(`SELECT * FROM ${tableName} LIMIT 100`);
         setQueryResults((prev) => ({
           ...prev,
