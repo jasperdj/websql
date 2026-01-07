@@ -66,8 +66,8 @@ npm run typecheck   # Run TypeScript type checking
 npm run lint && npm run typecheck
 
 # Visual Testing (Optional - use when UI changes need verification)
-node scripts/screenshot.js         # Take UI screenshot with Puppeteer
-node scripts/virtual-screenshot.js # Text-based UI verification (ARM64 fallback)
+node scripts/screenshot/screenshot.js         # Take UI screenshot with Puppeteer
+node scripts/screenshot/virtual-screenshot.js # Text-based UI verification (ARM64 fallback)
 
 # CRITICAL: After EVERY git push
 gh run list --workflow=deploy.yml --limit=1  # Check deployment
@@ -150,26 +150,26 @@ Use Puppeteer screenshot testing when:
 # Prerequisites: Ensure dev server is running (npm run dev)
 
 # Take a screenshot of the current UI
-node scripts/screenshot.js
+node scripts/screenshot/screenshot.js
 
 # Alternative methods:
-node scripts/screenshot-playwright.js  # Uses Playwright instead of Puppeteer
-node scripts/virtual-screenshot.js     # Text-based UI structure (no browser needed)
+node scripts/screenshot/screenshot-playwright.js  # Uses Playwright instead of Puppeteer
+node scripts/screenshot/virtual-screenshot.js     # Text-based UI structure (no browser needed)
 ```
 
 ### ARM64/WSL Considerations
 If Puppeteer fails on ARM64 systems:
 1. Install required libraries: `sudo apt-get install -y libatk1.0-0 libatk-bridge2.0-0 libcups2 libxkbcommon0 libatspi2.0-0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 libgbm1 libpango-1.0-0 libcairo2 libasound2`
-2. Use Docker solution: `docker build -f scripts/puppeteer-arm64-fix/Dockerfile -t websql-puppeteer .`
-3. Fallback to virtual screenshot: `node scripts/virtual-screenshot.js`
+2. Use Docker solution: `docker build -f scripts/screenshot/puppeteer-arm64-fix/Dockerfile -t websql-puppeteer .`
+3. Fallback to virtual screenshot: `node scripts/screenshot/virtual-screenshot.js`
 
 ## Known Issues
 
 ### Puppeteer on ARM64 Systems
-Puppeteer may fail on ARM64/aarch64 systems due to architecture incompatibility and missing system libraries. See PUPPETEER_ARM64_FIX.md for detailed solutions. As a workaround, use:
-- `node scripts/virtual-screenshot.js` for UI verification
+Puppeteer may fail on ARM64/aarch64 systems due to architecture incompatibility and missing system libraries. See docs/PUPPETEER_ARM64_FIX.md for detailed solutions. As a workaround, use:
+- `node scripts/screenshot/virtual-screenshot.js` for UI verification
 - Manual browser testing at http://localhost:5173
-- Docker-based solution in scripts/puppeteer-arm64-fix/
+- Docker-based solution in scripts/screenshot/puppeteer-arm64-fix/
 
 ## Building Windows Portable Executable
 
