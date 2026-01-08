@@ -136,6 +136,17 @@ export function TableViewer({ result, query }: TableViewerProps) {
             whereConditions.push(`${quotedKey} IS NULL`);
           } else if (typeof value === 'string') {
             whereConditions.push(`${quotedKey} = '${value.replace(/'/g, "''")}'`);
+          } else if (typeof value === 'number') {
+            // Check if this looks like a timestamp in milliseconds (between year 2001 and 2100)
+            const isLikelyTimestampMs = value > 1e12 && value < 5e12;
+            if (isLikelyTimestampMs) {
+              // Convert milliseconds to timestamp using epoch_ms()
+              whereConditions.push(`${quotedKey} = epoch_ms(${value})`);
+            } else {
+              whereConditions.push(`${quotedKey} = ${value}`);
+            }
+          } else if (typeof value === 'boolean') {
+            whereConditions.push(`${quotedKey} = ${value}`);
           } else {
             whereConditions.push(`${quotedKey} = ${value}`);
           }
