@@ -119,25 +119,28 @@ export function TableViewer({ result, query }: TableViewerProps) {
       
       for (const [key, value] of Object.entries(rowData)) {
         if (key !== event.colDef.field) {
+          // Quote column names with double quotes for SQL identifiers
+          const quotedKey = `"${key.replace(/"/g, '""')}"`;
           if (value === null) {
-            whereConditions.push(`${key} IS NULL`);
+            whereConditions.push(`${quotedKey} IS NULL`);
           } else if (typeof value === 'string') {
-            whereConditions.push(`${key} = '${value.replace(/'/g, "''")}'`);
+            whereConditions.push(`${quotedKey} = '${value.replace(/'/g, "''")}'`);
           } else {
-            whereConditions.push(`${key} = ${value}`);
+            whereConditions.push(`${quotedKey} = ${value}`);
           }
         }
       }
       
-      // Build UPDATE query
+      // Build UPDATE query - quote column name for SQL identifiers
+      const quotedField = `"${String(event.colDef.field).replace(/"/g, '""')}"`;
       let newValue = event.newValue;
       if (newValue === null || newValue === 'NULL' || newValue === '') {
         newValue = 'NULL';
       } else if (typeof newValue === 'string' && isNaN(Number(newValue))) {
         newValue = `'${newValue.replace(/'/g, "''")}'`;
       }
-      
-      const updateQuery = `UPDATE ${editableInfo.tableName} SET ${event.colDef.field} = ${newValue} WHERE ${whereConditions.join(' AND ')}`;
+
+      const updateQuery = `UPDATE ${editableInfo.tableName} SET ${quotedField} = ${newValue} WHERE ${whereConditions.join(' AND ')}`;
       
       await duckdbService.query(updateQuery);
       
