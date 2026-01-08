@@ -121,8 +121,13 @@ class DuckDBService {
       await this.initialize();
     }
 
-    // Create a temporary file in DuckDB
+    // Create a temporary file in DuckDB (drop first to ensure fresh data)
     const fileName = `${tableName}.csv`;
+    try {
+      this.db!.dropFile(fileName);
+    } catch {
+      // File might not exist, ignore
+    }
     await this.db!.registerFileText(fileName, csvContent);
 
     // Import CSV into table
@@ -135,8 +140,13 @@ class DuckDBService {
       await this.initialize();
     }
 
-    // Register the parquet file
+    // Register the parquet file (drop first to ensure fresh data)
     const fileName = `${tableName}.parquet`;
+    try {
+      this.db!.dropFile(fileName);
+    } catch {
+      // File might not exist, ignore
+    }
     await this.db!.registerFileBuffer(fileName, new Uint8Array(buffer));
 
     // Import Parquet into table

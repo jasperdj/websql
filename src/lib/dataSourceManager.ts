@@ -398,8 +398,9 @@ class DataSourceManager {
         } else {
           utils.book_append_sheet(workbook, worksheet, sheetName);
         }
-        // Use 'arraybuffer' type for proper binary data handling in browser/Tauri
-        const updatedBuffer = write(workbook, { type: 'arraybuffer', bookType: 'xlsx' });
+        // xlsx write returns number[], convert to ArrayBuffer for writeFile
+        const updatedArray = write(workbook, { type: 'array', bookType: 'xlsx' });
+        const updatedBuffer = new Uint8Array(updatedArray).buffer;
         await this.writeFile(dataSource, tableInfo.filePath, updatedBuffer);
       } else {
         console.warn(`Skipping sync for ${tableName}: unsupported file type ${fileExtension}`);
