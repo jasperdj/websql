@@ -130,8 +130,8 @@ class DuckDBService {
     }
     await this.db!.registerFileText(fileName, csvContent);
 
-    // Import CSV into table
-    const sql = `CREATE TABLE IF NOT EXISTS ${tableName} AS SELECT * FROM read_csv_auto('${fileName}')`;
+    // Import CSV into table (use OR REPLACE to ensure fresh data)
+    const sql = `CREATE OR REPLACE TABLE ${tableName} AS SELECT * FROM read_csv_auto('${fileName}')`;
     await this.query(sql);
   }
 
@@ -153,8 +153,8 @@ class DuckDBService {
     await this.db!.registerFileBuffer(fileName, new Uint8Array(buffer));
     console.log(`[Parquet Import] Registered new virtual file: ${fileName}`);
 
-    // Import Parquet into table
-    const sql = `CREATE TABLE IF NOT EXISTS ${tableName} AS SELECT * FROM read_parquet('${fileName}')`;
+    // Import Parquet into table (use OR REPLACE to ensure fresh data)
+    const sql = `CREATE OR REPLACE TABLE ${tableName} AS SELECT * FROM read_parquet('${fileName}')`;
     await this.query(sql);
 
     // Debug: log first few rows after import
