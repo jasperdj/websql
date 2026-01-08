@@ -121,12 +121,17 @@ class DuckDBService {
       await this.initialize();
     }
 
-    // Create a temporary file in DuckDB
+    // Create a temporary file in DuckDB (drop first to ensure fresh data)
     const fileName = `${tableName}.csv`;
+    try {
+      this.db!.dropFile(fileName);
+    } catch {
+      // File might not exist, ignore
+    }
     await this.db!.registerFileText(fileName, csvContent);
 
-    // Import CSV into table
-    const sql = `CREATE TABLE IF NOT EXISTS ${tableName} AS SELECT * FROM read_csv_auto('${fileName}')`;
+    // Import CSV into table (use OR REPLACE to ensure fresh data)
+    const sql = `CREATE OR REPLACE TABLE ${tableName} AS SELECT * FROM read_csv_auto('${fileName}')`;
     await this.query(sql);
   }
 
@@ -135,13 +140,26 @@ class DuckDBService {
       await this.initialize();
     }
 
-    // Register the parquet file
-    const fileName = `${tableName}.parquet`;
-    await this.db!.registerFileBuffer(fileName, new Uint8Array(buffer));
+    console.log(`[Parquet Import] Importing ${tableName}, buffer size: ${buffer.byteLength} bytes`);
 
-    // Import Parquet into table
-    const sql = `CREATE TABLE IF NOT EXISTS ${tableName} AS SELECT * FROM read_parquet('${fileName}')`;
+    // Register the parquet file (drop first to ensure fresh data)
+    const fileName = `${tableName}.parquet`;
+    try {
+      this.db!.dropFile(fileName);
+      console.log(`[Parquet Import] Dropped existing virtual file: ${fileName}`);
+    } catch {
+      // File might not exist, ignore
+    }
+    await this.db!.registerFileBuffer(fileName, new Uint8Array(buffer));
+    console.log(`[Parquet Import] Registered new virtual file: ${fileName}`);
+
+    // Import Parquet into table (use OR REPLACE to ensure fresh data)
+    const sql = `CREATE OR REPLACE TABLE ${tableName} AS SELECT * FROM read_parquet('${fileName}')`;
     await this.query(sql);
+
+    // Debug: log first few rows after import
+    const debugResult = await this.query(`SELECT * FROM ${tableName} LIMIT 3`);
+    console.log(`[Parquet Import] Table ${tableName} data after import:`, debugResult.rows);
   }
 
   async importXlsx(tableName: string, buffer: ArrayBuffer): Promise<string[]> {
@@ -421,9 +439,14 @@ class DuckDBService {
         await this.initialize();
       }
 
+      // Debug: log first few rows before export
+      const debugResult = await this.query(`SELECT * FROM ${tableName} LIMIT 3`);
+      console.log(`[Parquet Export] Table ${tableName} data before export:`, debugResult.rows);
+
       const fileName = `${tableName}_${Date.now()}.parquet`;
       await this.query(`COPY (SELECT * FROM ${tableName}) TO '${fileName}' (FORMAT 'parquet')`);
       const buffer = await this.db!.copyFileToBuffer(fileName);
+      console.log(`[Parquet Export] Buffer size: ${buffer.byteLength} bytes`);
       this.db!.dropFile(fileName);
       return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
     } catch (error) {

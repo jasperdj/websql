@@ -11,6 +11,8 @@ class DataSourceManager {
   private fileTimestamps: Map<string, number> = new Map();
   private watcherInterval: NodeJS.Timeout | null = null;
   private tableReloadListeners: Set<(tableName: string) => void> = new Set();
+  // Track files currently being synced to prevent watcher interference
+  private syncingFiles: Set<string> = new Set();
 
   constructor() {
     this.loadFromStorage();
@@ -361,6 +363,9 @@ class DataSourceManager {
       }
     }
 
+    // Mark file as being synced to prevent watcher from reloading it
+    this.syncingFiles.add(tableInfo.filePath);
+
     try {
       const fileExtension = tableInfo.filePath.split('.').pop()?.toLowerCase();
       if (!fileExtension) {
@@ -393,7 +398,9 @@ class DataSourceManager {
         } else {
           utils.book_append_sheet(workbook, worksheet, sheetName);
         }
-        const updatedBuffer = write(workbook, { type: 'array', bookType: 'xlsx' });
+        // xlsx write returns number[], convert to ArrayBuffer for writeFile
+        const updatedArray = write(workbook, { type: 'array', bookType: 'xlsx' });
+        const updatedBuffer = new Uint8Array(updatedArray).buffer;
         await this.writeFile(dataSource, tableInfo.filePath, updatedBuffer);
       } else {
         console.warn(`Skipping sync for ${tableName}: unsupported file type ${fileExtension}`);
@@ -407,8 +414,15 @@ class DataSourceManager {
       
       console.log(`Synced table ${tableName} to file ${tableInfo.filePath}`);
     } catch (error) {
-      console.error(`Failed to sync table ${tableName}:`, error);
+      // Extract detailed error info for debugging
+      const errorDetails = error instanceof Error
+        ? { message: error.message, name: error.name, stack: error.stack }
+        : { raw: String(error), type: typeof error };
+      console.error(`Failed to sync table ${tableName}:`, errorDetails);
       throw error;
+    } finally {
+      // Remove sync lock after write and timestamp update complete
+      this.syncingFiles.delete(tableInfo.filePath);
     }
   }
 
@@ -442,6 +456,9 @@ class DataSourceManager {
           const config = dataSource.config as LocalDirConfig;
           if (!config.watchEnabled) continue;
         }
+
+        // Skip files currently being synced to prevent race conditions
+        if (this.syncingFiles.has(tableInfo.filePath)) continue;
 
         // Get file stats to check modification time
         const stats = await this.getFileStats(dataSource, tableInfo.filePath);

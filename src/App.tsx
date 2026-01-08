@@ -270,9 +270,15 @@ function AppContent() {
         const blob = new Blob([fileBuffer]);
         const fileObj = new File([blob], fileName);
         
-        // Import to DuckDB
+        // Import to DuckDB - use direct buffer imports to avoid File/Blob caching issues
         if (file.sheetName) {
           await duckdbService.importXlsxSheet(tableName, fileBuffer, file.sheetName);
+        } else if (fileName.toLowerCase().endsWith('.parquet')) {
+          await duckdbService.importParquet(tableName, fileBuffer);
+        } else if (fileName.toLowerCase().endsWith('.csv')) {
+          const decoder = new TextDecoder();
+          const csvContent = decoder.decode(fileBuffer);
+          await duckdbService.importCSV(tableName, csvContent);
         } else {
           await duckdbService.importFile(fileObj, tableName);
         }
@@ -367,8 +373,13 @@ function AppContent() {
       try {
         const dataSource = dataSourceManager.get(dataSourceId);
         if (!dataSource) return;
-        
-        const tableName = `${dataSource.shortName}_${fileName.replace(/\.[^/.]+$/, '').replace(/[^a-zA-Z0-9_]/g, '_')}`;
+
+        // Must match table name construction from above (lines 254-262)
+        const baseFileName = file.path.split('/').pop()?.split('\\').pop() || fileName;
+        const baseName = file.sheetName
+          ? `${baseFileName.replace(/\.[^/.]+$/, '')}_${file.sheetName}`
+          : baseFileName.replace(/\.[^/.]+$/, '');
+        const tableName = `${dataSource.shortName}_${baseName.replace(/[^a-zA-Z0-9_]/g, '_')}`;
         const result = await duckdbService.query(`SELECT * FROM ${tableName} LIMIT 100`);
         setQueryResults((prev) => ({
           ...prev,

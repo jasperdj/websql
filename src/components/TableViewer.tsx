@@ -110,8 +110,19 @@ export function TableViewer({ result, query }: TableViewerProps) {
 
   // Handle cell value changes
   const onCellValueChanged = useCallback(async (event: CellValueChangedEvent) => {
-    if (!editableInfo.tableName) return;
-    
+    console.log('[TableViewer] Cell value changed:', {
+      field: event.colDef.field,
+      oldValue: event.oldValue,
+      newValue: event.newValue,
+      tableName: editableInfo.tableName,
+      isEditable: editableInfo.isEditable
+    });
+
+    if (!editableInfo.tableName) {
+      console.log('[TableViewer] No table name, skipping update');
+      return;
+    }
+
     try {
       // Build WHERE clause using all other columns
       const whereConditions: string[] = [];
@@ -119,27 +130,43 @@ export function TableViewer({ result, query }: TableViewerProps) {
       
       for (const [key, value] of Object.entries(rowData)) {
         if (key !== event.colDef.field) {
+          // Quote column names with double quotes for SQL identifiers
+          const quotedKey = `"${key.replace(/"/g, '""')}"`;
           if (value === null) {
-            whereConditions.push(`${key} IS NULL`);
+            whereConditions.push(`${quotedKey} IS NULL`);
           } else if (typeof value === 'string') {
-            whereConditions.push(`${key} = '${value.replace(/'/g, "''")}'`);
+            whereConditions.push(`${quotedKey} = '${value.replace(/'/g, "''")}'`);
+          } else if (typeof value === 'number') {
+            // Check if this looks like a timestamp in milliseconds (between year 2001 and 2100)
+            const isLikelyTimestampMs = value > 1e12 && value < 5e12;
+            if (isLikelyTimestampMs) {
+              // Convert milliseconds to timestamp using epoch_ms()
+              whereConditions.push(`${quotedKey} = epoch_ms(${value})`);
+            } else {
+              whereConditions.push(`${quotedKey} = ${value}`);
+            }
+          } else if (typeof value === 'boolean') {
+            whereConditions.push(`${quotedKey} = ${value}`);
           } else {
-            whereConditions.push(`${key} = ${value}`);
+            whereConditions.push(`${quotedKey} = ${value}`);
           }
         }
       }
       
-      // Build UPDATE query
+      // Build UPDATE query - quote column name for SQL identifiers
+      const quotedField = `"${String(event.colDef.field).replace(/"/g, '""')}"`;
       let newValue = event.newValue;
       if (newValue === null || newValue === 'NULL' || newValue === '') {
         newValue = 'NULL';
       } else if (typeof newValue === 'string' && isNaN(Number(newValue))) {
         newValue = `'${newValue.replace(/'/g, "''")}'`;
       }
-      
-      const updateQuery = `UPDATE ${editableInfo.tableName} SET ${event.colDef.field} = ${newValue} WHERE ${whereConditions.join(' AND ')}`;
-      
-      await duckdbService.query(updateQuery);
+
+      const updateQuery = `UPDATE ${editableInfo.tableName} SET ${quotedField} = ${newValue} WHERE ${whereConditions.join(' AND ')}`;
+
+      console.log('[TableViewer] Executing UPDATE query:', updateQuery);
+      const updateResult = await duckdbService.query(updateQuery);
+      console.log('[TableViewer] UPDATE result:', updateResult);
       
       // Immediately sync to data source file if this is a data source table
       if (dataSourceManager.isDataSourceTable(editableInfo.tableName)) {
@@ -164,7 +191,7 @@ export function TableViewer({ result, query }: TableViewerProps) {
       // Revert the change
       event.node.setDataValue(event.colDef.field!, event.oldValue);
     }
-  }, [editableInfo.tableName]);
+  }, [editableInfo.tableName, editableInfo.isEditable]);
 
   // Handle cell clicks for custom selection
   const onCellClicked = useCallback((event: CellClickedEvent) => {
