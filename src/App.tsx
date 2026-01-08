@@ -270,9 +270,15 @@ function AppContent() {
         const blob = new Blob([fileBuffer]);
         const fileObj = new File([blob], fileName);
         
-        // Import to DuckDB
+        // Import to DuckDB - use direct buffer imports to avoid File/Blob caching issues
         if (file.sheetName) {
           await duckdbService.importXlsxSheet(tableName, fileBuffer, file.sheetName);
+        } else if (fileName.toLowerCase().endsWith('.parquet')) {
+          await duckdbService.importParquet(tableName, fileBuffer);
+        } else if (fileName.toLowerCase().endsWith('.csv')) {
+          const decoder = new TextDecoder();
+          const csvContent = decoder.decode(fileBuffer);
+          await duckdbService.importCSV(tableName, csvContent);
         } else {
           await duckdbService.importFile(fileObj, tableName);
         }
