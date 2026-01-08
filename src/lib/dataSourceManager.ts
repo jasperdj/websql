@@ -398,8 +398,8 @@ class DataSourceManager {
         } else {
           utils.book_append_sheet(workbook, worksheet, sheetName);
         }
-        // Note: 'array' type works in browser, 'buffer' requires Node.js
-        const updatedBuffer = write(workbook, { type: 'array', bookType: 'xlsx' });
+        // Use 'arraybuffer' type for proper binary data handling in browser/Tauri
+        const updatedBuffer = write(workbook, { type: 'arraybuffer', bookType: 'xlsx' });
         await this.writeFile(dataSource, tableInfo.filePath, updatedBuffer);
       } else {
         console.warn(`Skipping sync for ${tableName}: unsupported file type ${fileExtension}`);
@@ -413,7 +413,11 @@ class DataSourceManager {
       
       console.log(`Synced table ${tableName} to file ${tableInfo.filePath}`);
     } catch (error) {
-      console.error(`Failed to sync table ${tableName}:`, error);
+      // Extract detailed error info for debugging
+      const errorDetails = error instanceof Error
+        ? { message: error.message, name: error.name, stack: error.stack }
+        : { raw: String(error), type: typeof error };
+      console.error(`Failed to sync table ${tableName}:`, errorDetails);
       throw error;
     } finally {
       // Remove sync lock after write and timestamp update complete
